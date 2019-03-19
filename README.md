@@ -1,4 +1,4 @@
-# CustomKerasLayers
+# Custom Keras Layers
 ResBlock and DenseBlock layers for Keras API.
 
 ResBlocks use the Fixup Initialization, which allows to drop Batch Normalization layers.
