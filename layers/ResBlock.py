@@ -1,11 +1,13 @@
 from keras.layers import InputSpec
 from keras.layers import Conv1D, Conv2D, Conv3D
 from keras.layers import Deconv2D, Deconv3D
+from keras.initializers import VarianceScaling
 from keras.utils import conv_utils
 from keras.utils.generic_utils import to_list
 from keras import activations, initializers, regularizers, constraints
 from keras import backend as K
 from typing import Tuple, List, Union, AnyStr, Callable, Dict
+import numpy as np
 
 from layers import CompositeLayer
 
@@ -438,6 +440,11 @@ class ResBlockND(CompositeLayer):
         assert rank in [1, 2, 3]
         assert basic_block_count > 0
 
+        if "model_depth" in kwargs:
+            model_depth = kwargs.pop("model_depth")
+        else:
+            model_depth = None
+
         super(ResBlockND, self).__init__(**kwargs)
         self.rank = rank
         self.filters = filters
@@ -452,7 +459,14 @@ class ResBlockND(CompositeLayer):
         self.activation = activations.get(activation)
         self.use_bias = use_bias
 
-        self.kernel_initializer = initializers.get(kernel_initializer)
+        if kernel_initializer == "from_model_depth":
+            assert model_depth is not None
+            self.kernel_initializer = VarianceScaling(scale=1.0 / np.sqrt(model_depth),
+                                                      mode="fan_in",
+                                                      distribution="normal")
+        else:
+            self.kernel_initializer = initializers.get(kernel_initializer)
+
         self.bias_initializer = initializers.get(bias_initializer)
         self.kernel_regularizer = regularizers.get(kernel_regularizer)
         self.bias_regularizer = regularizers.get(bias_regularizer)

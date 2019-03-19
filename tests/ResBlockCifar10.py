@@ -4,7 +4,6 @@ from keras.datasets import cifar10
 from keras.utils.np_utils import to_categorical
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import TensorBoard
-from keras.initializers import VarianceScaling
 import numpy as np
 import os
 from time import time
@@ -20,17 +19,14 @@ def evaluate_on_cifar10():
     # region Model
     input_layer = Input(shape=[32, 32, 3])
     layer = input_layer
-    kernel_initializer = VarianceScaling(scale=1.0 / np.sqrt(total_depth), mode="fan_in", distribution="normal")
 
     for k in range(n_blocks):
         strides = 2 if k < (n_blocks - 1) else 1
         layer = ResBlock2D(filters=16 * (2 ** k), basic_block_count=basic_block_count, strides=strides,
-                           kernel_initializer=kernel_initializer, use_bias=True)(layer)
+                           kernel_initializer="from_model_depth", use_bias=True, model_depth=total_depth)(layer)
 
         if k == (n_blocks - 1):
             layer = AveragePooling2D(pool_size=8)(layer)
-        # else:
-        #     layer = AveragePooling2D(pool_size=2, strides=2)(layer)
 
     layer = Reshape([-1])(layer)
     layer = Dense(units=10, activation="softmax")(layer)
