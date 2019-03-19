@@ -1,5 +1,13 @@
 # Custom Keras Layers
-ResBlock and DenseBlock layers for Keras API.
+Layers:
+- CompositeLayer
+    - Base class for layers made of keras layers, only used to track layers weights
+- ResBlock 
+    - Versions : 1D, 2D, 3D, 2DTranspose/Deconv, 3DTranspose/Deconv
+    - Basic block as a separate class
+- DenseBlock
+    - Versions : 1D, 2D, 3D
+    - Composite Function Block as a separate class
 
 An alternative version is available in `tf_compat` if you need to use `tensorflow.python.keras` instead of `keras`. This is useful if you plan to use the `tf.data` API for example.
 
