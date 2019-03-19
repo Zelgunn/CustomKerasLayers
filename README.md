@@ -1,7 +1,11 @@
 # Custom Keras Layers
 ResBlock and DenseBlock layers for Keras API.
 
-ResBlocks use the Fixup Initialization, which allows to drop Batch Normalization layers.
+An alternative version is available in `tf_compat` if you need to use `tensorflow.python.keras` instead of `keras`. This is useful if you plan to use the `tf.data` API for example.
+
+## ResBlocks
+### Fixup Initialization
+ResBlocks in this project use the Fixup Initialization, which allows to drop Batch Normalization layers.
 
 ![Fixup initialization](https://i.stack.imgur.com/T67F3.png)
 
