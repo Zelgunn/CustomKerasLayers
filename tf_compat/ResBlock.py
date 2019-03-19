@@ -8,7 +8,7 @@ from tensorflow.python.keras import backend
 from tensorflow.python.keras.utils.generic_utils import to_list
 from typing import Tuple, List, Union, AnyStr, Callable, Dict
 
-from layers import CompositeLayer
+from tf_compat import CompositeLayer
 
 
 # region Basic blocks

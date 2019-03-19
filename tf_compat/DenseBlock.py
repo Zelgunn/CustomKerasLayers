@@ -6,7 +6,7 @@ from tensorflow.python.keras.utils import conv_utils
 from tensorflow.python.keras import activations, initializers, regularizers, constraints
 from typing import List
 
-from layers import CompositeLayer
+from tf_compat import CompositeLayer
 
 
 class CompositeFunctionBlock(CompositeLayer):
@@ -119,7 +119,7 @@ class CompositeFunctionBlock(CompositeLayer):
         return tuple(output_shape)
 
 
-class _DenseBlock(CompositeLayer):
+class DenseBlockND(CompositeLayer):
     def __init__(self, rank,
                  kernel_size,
                  growth_rate,
@@ -142,7 +142,7 @@ class _DenseBlock(CompositeLayer):
 
         assert rank in [1, 2, 3]
 
-        super(_DenseBlock, self).__init__(**kwargs)
+        super(DenseBlockND, self).__init__(**kwargs)
 
         self.rank = rank
         self.kernel_size = conv_utils.normalize_tuple(kernel_size, rank, "kernel_size")
@@ -217,7 +217,7 @@ class _DenseBlock(CompositeLayer):
             if self.transition_layer is not None:
                 self.build_sub_layer(self.transition_layer, tuple(intermediate_shape))
 
-        super(_DenseBlock, self).build(input_shape)
+        super(DenseBlockND, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
         inputs_list = [inputs]
@@ -272,11 +272,11 @@ class _DenseBlock(CompositeLayer):
                 "bias_constraint": constraints.serialize(self.bias_constraint)
             }
 
-        base_config = super(_DenseBlock, self).get_config()
+        base_config = super(DenseBlockND, self).get_config()
         return {**base_config, **config}
 
 
-class DenseBlock1D(_DenseBlock):
+class DenseBlock1D(DenseBlockND):
     def __init__(self,
                  kernel_size,
                  growth_rate,
@@ -322,7 +322,7 @@ class DenseBlock1D(_DenseBlock):
         return config
 
 
-class DenseBlock2D(_DenseBlock):
+class DenseBlock2D(DenseBlockND):
     def __init__(self,
                  kernel_size,
                  growth_rate,
@@ -368,7 +368,7 @@ class DenseBlock2D(_DenseBlock):
         return config
 
 
-class DenseBlock3D(_DenseBlock):
+class DenseBlock3D(DenseBlockND):
     def __init__(self,
                  kernel_size,
                  growth_rate,
