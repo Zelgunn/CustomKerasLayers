@@ -4,16 +4,25 @@ Layers:
     - Base class for layers made of keras layers, only used to track layers weights
 - ResBlock 
     - Versions : 1D, 2D, 3D, 2DTranspose/Deconv, 3DTranspose/Deconv
-    - Basic block as a separate class
+    - Basic blocks are a separate class
 - DenseBlock
     - Versions : 1D, 2D, 3D
     - Composite Function Block as a separate class
+    
+Now updated for TF2.0 (and tf.keras).
 
-An alternative version is available in `tf_compat` if you need to use `tensorflow.python.keras` instead of `keras`. This is useful if you plan to use the `tf.data` API for example.
+Very basic tests on Cifar10 are provided in /tests.
 
 ## ResBlocks
 ### Fixup Initialization
 ResBlocks in this project use the Fixup Initialization, which allows to drop Batch Normalization layers.
+
+To use fixup initialization, provide the ResBlocks with the initializer like so:
+
+``` python
+fixup_initializer = ResBlock2D.get_fixup_initializer(total_depth)
+block = ResBlock2D(kernel_initializer=fixup_initializer, ...)
+```
 
 ![Fixup initialization](https://i.stack.imgur.com/T67F3.png)
 
