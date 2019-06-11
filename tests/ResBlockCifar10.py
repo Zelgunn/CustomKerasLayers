@@ -1,9 +1,9 @@
-from keras.layers import Input, AveragePooling2D, Dense, Reshape
-from keras.models import Model
-from keras.datasets import cifar10
-from keras.utils.np_utils import to_categorical
-from keras.preprocessing.image import ImageDataGenerator
-from keras.callbacks import TensorBoard
+from tensorflow.python.keras.layers import Input, AveragePooling2D, Dense, Flatten
+from tensorflow.python.keras.models import Model
+from tensorflow.python.keras.datasets import cifar10
+from tensorflow.python.keras.utils.np_utils import to_categorical
+from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.python.keras.callbacks import TensorBoard
 import numpy as np
 import os
 from time import time
@@ -20,15 +20,17 @@ def evaluate_on_cifar10():
     input_layer = Input(shape=[32, 32, 3])
     layer = input_layer
 
+    kernel_initializer = ResBlock2D.get_fixup_initializer(total_depth)
+
     for k in range(n_blocks):
         strides = 2 if k < (n_blocks - 1) else 1
         layer = ResBlock2D(filters=16 * (2 ** k), basic_block_count=basic_block_count, strides=strides,
-                           kernel_initializer="from_model_depth", use_bias=True, model_depth=total_depth)(layer)
+                           kernel_initializer=kernel_initializer, use_bias=True)(layer)
 
         if k == (n_blocks - 1):
             layer = AveragePooling2D(pool_size=8)(layer)
 
-    layer = Reshape([-1])(layer)
+    layer = Flatten()(layer)
     layer = Dense(units=10, activation="softmax")(layer)
     model = Model(inputs=input_layer, outputs=layer)
     model.summary()
@@ -53,9 +55,9 @@ def evaluate_on_cifar10():
 
     log_dir = "../logs/tests/res_block_cifar10/{}".format(int(time()))
     log_dir = os.path.normpath(log_dir)
-    tensorboard = TensorBoard(log_dir=log_dir)
+    tensorboard = TensorBoard(log_dir=log_dir, profile_batch=0)
 
-    model.fit_generator(generator.flow(x_train, y_train, batch_size=100),
+    model.fit_generator(generator.flow(x_train, y_train, batch_size=64),
                         steps_per_epoch=100, epochs=300, validation_data=(x_test, y_test),
                         validation_steps=100, verbose=1, callbacks=[tensorboard])
 

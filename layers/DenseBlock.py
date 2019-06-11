@@ -1,14 +1,15 @@
-from keras.layers import InputSpec, Conv1D, Conv2D, Conv3D, BatchNormalization
-from keras.utils import conv_utils
-from keras import activations, initializers, regularizers, constraints
-from keras import backend as K
-from typing import List
+import tensorflow as tf
+from tensorflow.python.keras.layers import InputSpec, Layer
+from tensorflow.python.keras.layers import Conv1D, Conv2D, Conv3D
+from tensorflow.python.keras.layers import BatchNormalization, concatenate
+from tensorflow.python.keras.utils import conv_utils
+from tensorflow.python.keras import activations, initializers, regularizers, constraints
+from typing import List, Optional
 
-from layers import CompositeLayer
 
-
-class CompositeFunctionBlock(CompositeLayer):
-    def __init__(self, rank,
+class CompositeFunctionBlock(Layer):
+    def __init__(self,
+                 rank,
                  kernel_size,
                  filters,
                  use_bottleneck,
@@ -76,16 +77,16 @@ class CompositeFunctionBlock(CompositeLayer):
     def build(self, input_shape):
         if self.use_bottleneck:
             if self.use_batch_normalization:
-                self.build_sub_layer(self.bottleneck_batch_normalization_layer, input_shape)
+                self.bottleneck_batch_normalization_layer.build(input_shape)
 
-            self.build_sub_layer(self.bottleneck_conv_layer, input_shape)
+            self.bottleneck_conv_layer.build(input_shape)
 
             input_shape = self.bottleneck_conv_layer.compute_output_shape(input_shape)
 
         if self.use_batch_normalization:
-            self.build_sub_layer(self.batch_normalization_layer, input_shape)
+            self.batch_normalization_layer.build(input_shape)
 
-        self.build_sub_layer(self.conv_layer, input_shape)
+        self.conv_layer.build(input_shape)
 
         super(CompositeFunctionBlock, self).build(input_shape)
 
@@ -117,7 +118,7 @@ class CompositeFunctionBlock(CompositeLayer):
         return tuple(output_shape)
 
 
-class _DenseBlock(CompositeLayer):
+class DenseBlockND(Layer):
     def __init__(self, rank,
                  kernel_size,
                  growth_rate,
@@ -140,7 +141,7 @@ class _DenseBlock(CompositeLayer):
 
         assert rank in [1, 2, 3]
 
-        super(_DenseBlock, self).__init__(**kwargs)
+        super(DenseBlockND, self).__init__(**kwargs)
 
         self.rank = rank
         self.kernel_size = conv_utils.normalize_tuple(kernel_size, rank, "kernel_size")
@@ -155,7 +156,7 @@ class _DenseBlock(CompositeLayer):
 
         self.use_batch_normalization = use_batch_normalization
 
-        self.data_format = K.normalize_data_format(data_format)
+        self.data_format = conv_utils.normalize_data_format(data_format)
         self.channel_axis = -1 if self.data_format == "channels_last" else 1
 
         self.activation = activations.get(activation)
@@ -168,7 +169,7 @@ class _DenseBlock(CompositeLayer):
         self.kernel_constraint = constraints.get(kernel_constraint)
         self.bias_constraint = constraints.get(bias_constraint)
 
-        self.composite_function_blocks: List[CompositeFunctionBlock] = None
+        self.composite_function_blocks: Optional[List[CompositeFunctionBlock]] = None
         self.transition_layer = None
 
         self.input_spec = InputSpec(ndim=self.rank + 2)
@@ -207,26 +208,26 @@ class _DenseBlock(CompositeLayer):
         intermediate_shape = list(input_shape)
         self.input_spec = InputSpec(ndim=self.rank + 2, axes={self.channel_axis: input_dim})
 
-        with K.name_scope("dense_block_weights"):
+        with tf.name_scope("dense_block_weights"):
             for i in range(self._depth):
-                self.build_sub_layer(self.composite_function_blocks[i], tuple(intermediate_shape))
+                self.composite_function_blocks[i].build(tuple(intermediate_shape))
                 intermediate_shape[self.channel_axis] += self.growth_rate
 
             if self.transition_layer is not None:
-                self.build_sub_layer(self.transition_layer, tuple(intermediate_shape))
+                self.transition_layer.build(tuple(intermediate_shape))
 
-        super(_DenseBlock, self).build(input_shape)
+        super(DenseBlockND, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
         inputs_list = [inputs]
         layer = inputs
 
-        with K.name_scope("dense_block"):
+        with tf.name_scope("dense_block"):
             for i in range(self._depth):
                 layer = self.composite_function_blocks[i](layer)
 
                 inputs_list.append(layer)
-                layer = K.concatenate(inputs_list, axis=-1)
+                layer = concatenate(inputs_list, axis=-1)
 
         if self.transition_layer is not None:
             layer = self.transition_layer(layer)
@@ -270,11 +271,11 @@ class _DenseBlock(CompositeLayer):
                 "bias_constraint": constraints.serialize(self.bias_constraint)
             }
 
-        base_config = super(_DenseBlock, self).get_config()
+        base_config = super(DenseBlockND, self).get_config()
         return {**base_config, **config}
 
 
-class DenseBlock1D(_DenseBlock):
+class DenseBlock1D(DenseBlockND):
     def __init__(self,
                  kernel_size,
                  growth_rate,
@@ -320,7 +321,7 @@ class DenseBlock1D(_DenseBlock):
         return config
 
 
-class DenseBlock2D(_DenseBlock):
+class DenseBlock2D(DenseBlockND):
     def __init__(self,
                  kernel_size,
                  growth_rate,
@@ -366,7 +367,7 @@ class DenseBlock2D(_DenseBlock):
         return config
 
 
-class DenseBlock3D(_DenseBlock):
+class DenseBlock3D(DenseBlockND):
     def __init__(self,
                  kernel_size,
                  growth_rate,

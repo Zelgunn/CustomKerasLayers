@@ -1,10 +1,13 @@
-from keras.layers import Input, AveragePooling2D, Dense, Reshape, Conv2D
-from keras.models import Model
-from keras.datasets import cifar10
-from keras.utils.np_utils import to_categorical
-from keras.preprocessing.image import ImageDataGenerator
-from keras.regularizers import l2
+from tensorflow.python.keras.layers import Input, AveragePooling2D, Dense, Conv2D, Flatten
+from tensorflow.python.keras.models import Model
+from tensorflow.python.keras.datasets import cifar10
+from tensorflow.python.keras.utils.np_utils import to_categorical
+from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.python.keras.regularizers import l2
+from tensorflow.python.keras.callbacks import TensorBoard
 import numpy as np
+import os
+from time import time
 
 from layers import DenseBlock2D
 
@@ -22,7 +25,7 @@ def evaluate_on_cifar10():
     layer = Conv2D(filters=filters, kernel_size=3, strides=1, padding="same")(layer)
 
     for k in range(n_blocks):
-        layer = DenseBlock2D(rank=2, kernel_size=3, growth_rate=growth_rate, depth=depth,
+        layer = DenseBlock2D(kernel_size=3, growth_rate=growth_rate, depth=depth,
                              use_batch_normalization=True)(layer)
 
         if k < (n_blocks - 1):
@@ -31,7 +34,7 @@ def evaluate_on_cifar10():
         else:
             layer = AveragePooling2D(pool_size=8)(layer)
 
-    layer = Reshape([-1])(layer)
+    layer = Flatten()(layer)
     layer = Dense(units=10, activation="softmax")(layer)
     model = Model(inputs=input_layer, outputs=layer)
     model.summary()
@@ -54,9 +57,13 @@ def evaluate_on_cifar10():
     generator.fit(x_train, seed=0)
     # endregion
 
-    model.fit_generator(generator.flow(x_train, y_train, batch_size=100),
+    log_dir = "../logs/tests/dense_block_cifar10/{}".format(int(time()))
+    log_dir = os.path.normpath(log_dir)
+    tensorboard = TensorBoard(log_dir=log_dir, profile_batch=0)
+
+    model.fit_generator(generator.flow(x_train, y_train, batch_size=64),
                         steps_per_epoch=100, epochs=300, validation_data=(x_test, y_test),
-                        validation_steps=100, verbose=1)
+                        validation_steps=100, verbose=1, callbacks=[tensorboard])
 
 
 def transition_block(layer, filters):
