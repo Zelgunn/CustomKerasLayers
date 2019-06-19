@@ -10,7 +10,7 @@ import numpy as np
 from copy import copy
 from typing import Tuple, List, Union, AnyStr, Callable, Dict, Optional
 
-from utils import to_list
+from CustomKerasLayers.utils import to_list
 
 
 # region Basic blocks
