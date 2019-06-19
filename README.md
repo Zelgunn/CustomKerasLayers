@@ -1,4 +1,13 @@
 # Custom Keras Layers
+
+## Table of Contents
+    1. Layers
+    2. ResBlocks
+        a. Fixup Initialization
+    3. Spatial Tranformer
+        a. Usage
+
+## Layers
 Now updated for TF2.0 (and tf.keras).
 
 Layers:
@@ -23,7 +32,7 @@ Original paper:
       year={2016}
     }
 
-### Fixup Initialization
+#### Fixup Initialization
 ResBlocks in this project use the Fixup Initialization, which allows to drop Batch Normalization layers.
 
 To use fixup initialization, provide the ResBlocks with the initializer like so:
