@@ -1,14 +1,14 @@
 # Custom Keras Layers
+Now updated for TF2.0 (and tf.keras).
 
 ## Table of Contents
     1. Layers
-    2. ResBlocks
+    2. ResBlock
         a. Fixup Initialization
     3. Spatial Tranformer
         a. Usage
 
 ## Layers
-Now updated for TF2.0 (and tf.keras).
 
 Layers:
 - ResBlock 
@@ -21,8 +21,8 @@ Layers:
     
 Very basic tests on Cifar10 are provided in /tests for ResBlock and DenseBlock.
 
-## ResBlocks
-Original paper:
+## ResBlock
+Original paper (ResNet):
 
     @inproceedings{he2016deep,
       title={Deep residual learning for image recognition},
