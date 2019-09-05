@@ -9,7 +9,7 @@ import numpy as np
 import os
 from time import time
 
-from layers import DenseBlock2D
+from CustomKerasLayers import DenseBlock2D
 
 
 def evaluate_on_cifar10():

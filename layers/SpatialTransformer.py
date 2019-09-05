@@ -30,8 +30,6 @@ class SpatialTransformer(Layer):
         self.output_size = output_size
 
     def build(self, input_shape):
-        self.localisation_net.build(input_shape)
-
         localisation_output_shape = self.localisation_net.compute_output_shape(input_shape)
         localisation_output_shape_check = list(localisation_output_shape)
         localisation_output_shape_check.remove(None)
@@ -147,7 +145,7 @@ def floor_int(tensor: tf.Tensor, name="floor_int") -> tf.Tensor:
     """Returns element-wise largest integer not greater than `tensor` and casts it to `int32`.
 
         Arguments:
-            tensor: A `Tensor`. Must be one of the following types: `bfloat16`, `half`, `float32`, `float64`.
+            tensor: A `Tensor`. Must be one of the following types: `float16`, `half`, `float32`, `float64`.
             name: A name for the operation (optional).
 
         Returns:

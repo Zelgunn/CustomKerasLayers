@@ -111,16 +111,8 @@ class ResBasicBlockND(Layer):
 
     def build(self, input_shape):
         self.init_layers(input_shape)
-        intermediate_shape = input_shape
 
         with tf.name_scope("residual_basic_block_weights"):
-            for i in range(self.depth):
-                self.conv_layers[i].build(intermediate_shape)
-                intermediate_shape = self.conv_layers[i].compute_output_shape(intermediate_shape)
-
-            if self.projection_layer is not None:
-                self.projection_layer.build(input_shape)
-
             self.residual_multiplier = self.add_weight(name="residual_multiplier", shape=[], dtype=backend.floatx(),
                                                        initializer=tf.ones_initializer)
             if self.use_bias:
@@ -473,6 +465,7 @@ class ResBlockND(Layer):
         self.basic_blocks: List[ResBasicBlockND] = []
 
         self.input_spec = InputSpec(ndim=self.rank + 2)
+        self.init_layers()
 
     def init_layers(self):
         for i in range(self.basic_block_count):
@@ -498,16 +491,6 @@ class ResBlockND(Layer):
         self._layers = copy(self.basic_blocks)
 
     def build(self, input_shape):
-        self.init_layers()
-
-        intermediate_shape = input_shape
-
-        with tf.name_scope("residual_block_weights"):
-            for i in range(self.basic_block_count):
-                basic_block = self.basic_blocks[i]
-                basic_block.build(intermediate_shape)
-                intermediate_shape = basic_block.compute_output_shape(intermediate_shape)
-
         self.input_spec = InputSpec(ndim=self.rank + 2, axes={self.channel_axis: input_shape[self.channel_axis]})
         super(ResBlockND, self).build(input_shape)
 

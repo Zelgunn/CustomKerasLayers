@@ -8,7 +8,7 @@ import numpy as np
 import os
 from time import time
 
-from layers import ResBlock2D
+from CustomKerasLayers import ResBlock2D
 
 
 def evaluate_on_cifar10():

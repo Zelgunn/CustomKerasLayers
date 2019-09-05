@@ -38,10 +38,14 @@ ResBlocks in this project use the Fixup Initialization, which allows to drop Bat
 To use fixup initialization, provide the ResBlocks with the initializer like so:
 
 ```python
-from layers import ResBlock2D
+from CustomKerasLayers import ResBlock2D
+
+total_depth = 36
+other_args = {"filters": 32, "basic_bloc_count": 2}  # ...
 
 fixup_initializer = ResBlock2D.get_fixup_initializer(total_depth)
-block = ResBlock2D(kernel_initializer=fixup_initializer, ...)
+block = ResBlock2D(kernel_initializer=fixup_initializer, **other_args)
+
 ```
 
 ![Fixup initialization](https://i.stack.imgur.com/T67F3.png)
@@ -79,9 +83,9 @@ The transformation is performed through differentiable bilinear sampling.
 
 Here is a small example:
 ```python
-from tensorflow.keras.models import Model, Sequential
-from tensorflow.keras.layers import Input
-from layers import SpatialTransformer
+from tensorflow.python.keras.models import Sequential
+from tensorflow.python.keras.layers import Input
+from CustomKerasLayers import SpatialTransformer
 
 # Build
 input_shape = (128, 128, 3)
@@ -96,6 +100,7 @@ encoder = Sequential(...)
 # Call
 input_layer = Input(input_shape)
 
+output_theta = False
 if output_theta:
     layer, theta = spatial_transformer(input_layer, output_theta=True)
 else:

@@ -74,22 +74,6 @@ class CompositeFunctionBlock(Layer):
 
         super(CompositeFunctionBlock, self).__init__(**kwargs)
 
-    def build(self, input_shape):
-        if self.use_bottleneck:
-            if self.use_batch_normalization:
-                self.bottleneck_batch_normalization_layer.build(input_shape)
-
-            self.bottleneck_conv_layer.build(input_shape)
-
-            input_shape = self.bottleneck_conv_layer.compute_output_shape(input_shape)
-
-        if self.use_batch_normalization:
-            self.batch_normalization_layer.build(input_shape)
-
-        self.conv_layer.build(input_shape)
-
-        super(CompositeFunctionBlock, self).build(input_shape)
-
     def call(self, inputs, **kwargs):
         layer = inputs
 
@@ -205,16 +189,7 @@ class DenseBlockND(Layer):
         self.init_layers()
 
         input_dim = input_shape[self.channel_axis]
-        intermediate_shape = list(input_shape)
         self.input_spec = InputSpec(ndim=self.rank + 2, axes={self.channel_axis: input_dim})
-
-        with tf.name_scope("dense_block_weights"):
-            for i in range(self._depth):
-                self.composite_function_blocks[i].build(tuple(intermediate_shape))
-                intermediate_shape[self.channel_axis] += self.growth_rate
-
-            if self.transition_layer is not None:
-                self.transition_layer.build(tuple(intermediate_shape))
 
         super(DenseBlockND, self).build(input_shape)
 
