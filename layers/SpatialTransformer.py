@@ -33,6 +33,7 @@ class SpatialTransformer(Layer):
         localisation_output_shape = self.localisation_net.compute_output_shape(input_shape)
         localisation_output_shape_check = list(localisation_output_shape)
         localisation_output_shape_check.remove(None)
+        # noinspection PyUnresolvedReferences
         assert np.all(np.greater(localisation_output_shape_check, 0)), \
             "Negative output shape from localisation net : {0}".format(localisation_output_shape)
         if len(localisation_output_shape) != 2:

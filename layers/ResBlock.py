@@ -5,7 +5,6 @@ from tensorflow.python.keras.layers import Conv2DTranspose, Conv3DTranspose, Bat
 from tensorflow.python.keras.utils import conv_utils
 from tensorflow.python.keras.initializers import VarianceScaling
 from tensorflow.python.keras import activations, initializers, regularizers, constraints
-from tensorflow.python.keras import backend
 import numpy as np
 from typing import Tuple, List, Union, AnyStr, Callable, Dict, Optional
 
@@ -195,6 +194,7 @@ class ResBasicBlockND(Layer):
 
         return input_shape[self.channel_axis] != self.filters
 
+    # noinspection DuplicatedCode
     def compute_output_shape(self, input_shape):
         def get_new_space(space):
             new_space = []
@@ -362,6 +362,7 @@ class ResBasicBlockNDTranspose(ResBasicBlockND):
         assert self.rank in [2, 3]
         return Conv2DTranspose if self.rank is 2 else Conv3DTranspose
 
+    # noinspection DuplicatedCode
     def compute_output_shape(self, input_shape):
         def get_new_space(space):
             new_space = []
@@ -544,6 +545,7 @@ class ResBlockND(Layer):
                 layer = basic_block(layer)
         return layer
 
+    # noinspection DuplicatedCode
     def compute_output_shape(self, input_shape):
         def get_new_space(space):
             new_space = []
@@ -603,6 +605,7 @@ class ResBlockND(Layer):
         base_config = super(ResBlockND, self).get_config()
         return {**base_config, **config}
 
+    # noinspection PyUnresolvedReferences
     @staticmethod
     def get_fixup_initializer(model_depth: int) -> VarianceScaling:
         return VarianceScaling(scale=1 / np.sqrt(model_depth), mode="fan_in", distribution="normal")
@@ -690,7 +693,7 @@ class ResBlock2D(ResBlockND):
 class ResBlock3D(ResBlockND):
     def __init__(self,
                  filters,
-                 basic_block_count: int,
+                 basic_block_count=1,
                  basic_block_depth=2,
                  kernel_size=(3, 3, 3),
                  strides=(1, 1, 1),
@@ -748,6 +751,7 @@ class ResBlockNDTranspose(ResBlockND):
                                                    bias_constraint=self.bias_constraint)
             self.basic_blocks.append(basic_block)
 
+    # noinspection DuplicatedCode
     def compute_output_shape(self, input_shape):
         def get_new_space(space):
             new_space = []
@@ -810,7 +814,7 @@ class ResBlock2DTranspose(ResBlockNDTranspose):
 class ResBlock3DTranspose(ResBlockNDTranspose):
     def __init__(self,
                  filters,
-                 basic_block_count: int,
+                 basic_block_count=1,
                  basic_block_depth=2,
                  kernel_size=(3, 3, 3),
                  strides=(1, 1, 1),
