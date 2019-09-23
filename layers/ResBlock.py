@@ -175,7 +175,7 @@ class ResBasicBlockND(Layer):
                         outputs = self.activation_biases[i](outputs)
                     outputs = self.activation(outputs)
 
-        if self.use_projection(backend.int_shape(inputs)):
+        if self.projection_layer is not None:
             inputs = self.projection_layer(inputs)
 
         # x_k+1 = x_k + a*f(x_k) + b
