@@ -16,3 +16,6 @@ from CustomKerasLayers.layers.SpatialTransformer import SpatialTransformer
 from CustomKerasLayers.layers.SpatialTransformer import bilinear_sampling, affine_grid
 # noinspection PyUnresolvedReferences
 from CustomKerasLayers.layers.SpatialTransformer import spatial_transformation, adjust_theta
+
+# noinspection PyUnresolvedReferences
+from CustomKerasLayers.layers.TemporalDense import TemporalDense
