@@ -19,3 +19,6 @@ from CustomKerasLayers.layers.SpatialTransformer import spatial_transformation, 
 
 # noinspection PyUnresolvedReferences
 from CustomKerasLayers.layers.TemporalDense import TemporalDense
+
+# noinspection PyUnresolvedReferences
+from CustomKerasLayers.layers.MaskedConv import MaskedConv1D, MaskedConv2D, MaskedConv3D
