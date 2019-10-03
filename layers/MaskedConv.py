@@ -8,10 +8,10 @@ def get_kernel_mask(kernel_size: List[int], mask_center: bool) -> np.ndarray:
     if isinstance(kernel_size, int):
         kernel_size = [kernel_size]
 
-    one_count = kernel_size[0] // 2
-    total_count = kernel_size[0]
-    for i in range(1, len(kernel_size)):
-        one_count += one_count * kernel_size[i] + kernel_size[i] // 2
+    one_count = 0
+    total_count = 1
+    for i in range(len(kernel_size)):
+        one_count += total_count * (kernel_size[i] // 2)
         total_count *= kernel_size[i]
 
     if not mask_center:
@@ -199,10 +199,10 @@ class MaskedConv1D(MaskedConv):
                  filters,
                  kernel_size,
                  mask_center=True,
-                 strides=(1, 1, 1),
+                 strides=1,
                  padding='valid',
                  data_format=None,
-                 dilation_rate=(1, 1, 1),
+                 dilation_rate=1,
                  activation=None,
                  use_bias=True,
                  kernel_initializer='glorot_uniform',
@@ -295,10 +295,10 @@ class MaskedConv2D(MaskedConv):
                  filters,
                  kernel_size,
                  mask_center=True,
-                 strides=(1, 1, 1),
+                 strides=(1, 1),
                  padding='valid',
                  data_format=None,
-                 dilation_rate=(1, 1, 1),
+                 dilation_rate=(1, 1),
                  activation=None,
                  use_bias=True,
                  kernel_initializer='glorot_uniform',
@@ -420,3 +420,18 @@ class MaskedConv3D(MaskedConv):
             kernel_constraint=kernel_constraint,
             bias_constraint=bias_constraint,
             **kwargs)
+
+
+if __name__ == "__main__":
+    layer = MaskedConv2D(filters=1,
+                         kernel_size=3,
+                         mask_center=True,
+                         padding="same",
+                         use_bias=False,
+                         kernel_initializer="ones")
+
+    x = tf.ones([1, 9, 9, 1])
+    y = layer(x)
+
+    print(tf.squeeze(y))
+    print(tf.squeeze(layer.kernel_mask))
