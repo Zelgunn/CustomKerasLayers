@@ -8,11 +8,11 @@ def get_kernel_mask(kernel_size: List[int], mask_center: bool) -> np.ndarray:
     if isinstance(kernel_size, int):
         kernel_size = [kernel_size]
 
-    one_count = 0
-    total_count = 1
-    for i in range(len(kernel_size)):
-        one_count += total_count * (kernel_size[i] // 2)
-        total_count *= kernel_size[i]
+    if any([(dim % 2) == 0 for dim in kernel_size]):
+        raise ValueError("Even numbers are not supported yet. Received `{}`.".format(kernel_size))
+
+    total_count = np.prod(kernel_size)
+    one_count = total_count // 2
 
     if not mask_center:
         one_count += 1
@@ -32,6 +32,7 @@ class MaskedConv(Conv):
     :param filters: Integer, the dimensionality of the output space (i.e. the number of filters in the convolution).
     :param kernel_size: An integer or tuple/list of n integers, specifying the length of the convolution window.
     :param mask_center: A boolean, if False then the center of the kernel is not masked.
+    :param kernel_mask: (Optional) If specified, replaces the default mask.
     :param strides: An integer or tuple/list of n integers,
         specifying the stride length of the convolution.
         Specifying any stride value != 1 is incompatible with specifying
@@ -81,6 +82,7 @@ class MaskedConv(Conv):
                  filters,
                  kernel_size,
                  mask_center=True,
+                 kernel_mask=None,
                  strides=(1, 1, 1),
                  padding='valid',
                  data_format=None,
@@ -115,9 +117,16 @@ class MaskedConv(Conv):
             **kwargs)
 
         self.mask_center = mask_center
-        self.kernel_mask = tf.constant(get_kernel_mask(self.kernel_size, self.mask_center),
-                                       name="kernel_mask",
-                                       dtype=tf.float32)
+
+        if kernel_mask is None:
+            kernel_mask = get_kernel_mask(self.kernel_size, self.mask_center)
+
+        if not isinstance(kernel_mask, tf.Tensor):
+            kernel_mask = tf.constant(kernel_mask,
+                                      name="kernel_mask",
+                                      dtype=tf.float32)
+
+        self.kernel_mask = kernel_mask
 
     def call(self, inputs):
         outputs = self._convolution_op(inputs, self.kernel * self.kernel_mask)
@@ -149,56 +158,58 @@ class MaskedConv(Conv):
 
 class MaskedConv1D(MaskedConv):
     """
-        Same layer as Conv1D, except that the kernel is masked so that a "pixel" only sees previous "pixels".
-        See "Conditional Image Generation with PixelCNN Decoders".
+    Same layer as Conv1D, except that the kernel is masked so that a "pixel" only sees previous "pixels".
+    See "Conditional Image Generation with PixelCNN Decoders".
 
-        :param filters: Integer, the dimensionality of the output space (i.e. the number of filters in the convolution).
-        :param kernel_size: An integer, specifying the length of the convolution window.
-        :param mask_center: A boolean, if False then the center of the kernel is not masked.
-        :param strides: An integer, specifying the stride length of the convolution.
-            Specifying any stride value != 1 is incompatible with specifying any `dilation_rate` value != 1.
-        :param padding: One of `"valid"`,  `"same"` and `"causal"` (case-insensitive).
-        :param data_format: A string, one of `channels_last` (default) or `channels_first`.
-            The ordering of the dimensions in the inputs.
-            `channels_last` corresponds to inputs with shape `(batch, ..., channels)`
-            while `channels_first` corresponds to inputs with shape `(batch, channels, ...)`.
-        :param dilation_rate: An integer, specifying the dilation rate to use for dilated convolution.
-            Currently, specifying any `dilation_rate` value != 1 is
-            incompatible with specifying any `strides` value != 1.
-        :param activation: Activation function. Set it to None to maintain a linear activation.
-        :param use_bias: Boolean, whether the layer uses a bias.
-        :param kernel_initializer: An initializer for the convolution kernel.
-        :param bias_initializer: An initializer for the bias vector. If None, the default initializer will be used.
-        :param kernel_regularizer: Optional regularizer for the convolution kernel.
-        :param bias_regularizer: Optional regularizer for the bias vector.
-        :param activity_regularizer: Optional regularizer function for the output.
-        :param kernel_constraint: Optional projection function to be applied to the
-            kernel after being updated by an `Optimizer` (e.g. used to implement
-            norm constraints or value constraints for layer weights). The function
-            must take as input the unprojected variable and must return the
-            projected variable (which must have the same shape). Constraints are
-            not safe to use when doing asynchronous distributed training.
-        :param bias_constraint: Optional projection function to be applied to the
-            bias after being updated by an `Optimizer`.
+    :param filters: Integer, the dimensionality of the output space (i.e. the number of filters in the convolution).
+    :param kernel_size: An integer, specifying the length of the convolution window.
+    :param mask_center: A boolean, if False then the center of the kernel is not masked.
+    :param kernel_mask: (Optional) If specified, replaces the default mask.
+    :param strides: An integer, specifying the stride length of the convolution.
+        Specifying any stride value != 1 is incompatible with specifying any `dilation_rate` value != 1.
+    :param padding: One of `"valid"`,  `"same"` and `"causal"` (case-insensitive).
+    :param data_format: A string, one of `channels_last` (default) or `channels_first`.
+        The ordering of the dimensions in the inputs.
+        `channels_last` corresponds to inputs with shape `(batch, ..., channels)`
+        while `channels_first` corresponds to inputs with shape `(batch, channels, ...)`.
+    :param dilation_rate: An integer, specifying the dilation rate to use for dilated convolution.
+        Currently, specifying any `dilation_rate` value != 1 is
+        incompatible with specifying any `strides` value != 1.
+    :param activation: Activation function. Set it to None to maintain a linear activation.
+    :param use_bias: Boolean, whether the layer uses a bias.
+    :param kernel_initializer: An initializer for the convolution kernel.
+    :param bias_initializer: An initializer for the bias vector. If None, the default initializer will be used.
+    :param kernel_regularizer: Optional regularizer for the convolution kernel.
+    :param bias_regularizer: Optional regularizer for the bias vector.
+    :param activity_regularizer: Optional regularizer function for the output.
+    :param kernel_constraint: Optional projection function to be applied to the
+        kernel after being updated by an `Optimizer` (e.g. used to implement
+        norm constraints or value constraints for layer weights). The function
+        must take as input the unprojected variable and must return the
+        projected variable (which must have the same shape). Constraints are
+        not safe to use when doing asynchronous distributed training.
+    :param bias_constraint: Optional projection function to be applied to the
+        bias after being updated by an `Optimizer`.
 
-        Input shape:
-            3D tensor with shape:
-                `(samples, channels, conv_dim)` if data_format='channels_first'
-            or 3D tensor with shape:
-                `(samples, conv_dim, channels)` if data_format='channels_last'.
+    Input shape:
+        3D tensor with shape:
+            `(samples, channels, conv_dim)` if data_format='channels_first'
+        or 3D tensor with shape:
+            `(samples, conv_dim, channels)` if data_format='channels_last'.
 
-        Output shape:
-            3D tensor with shape:
-                `(samples, filters, new_conv_dim)` if data_format='channels_first'
-            or 3D tensor with shape:
-                `(samples, new_conv_dim, filters)` if data_format='channels_last'.
-                `new_conv_dims` values might have changed due to padding.
-        """
+    Output shape:
+        3D tensor with shape:
+            `(samples, filters, new_conv_dim)` if data_format='channels_first'
+        or 3D tensor with shape:
+            `(samples, new_conv_dim, filters)` if data_format='channels_last'.
+            `new_conv_dims` values might have changed due to padding.
+    """
 
     def __init__(self,
                  filters,
                  kernel_size,
                  mask_center=True,
+                 kernel_mask=None,
                  strides=1,
                  padding='valid',
                  data_format=None,
@@ -218,6 +229,7 @@ class MaskedConv1D(MaskedConv):
             filters=filters,
             kernel_size=kernel_size,
             mask_center=mask_center,
+            kernel_mask=kernel_mask,
             strides=strides,
             padding=padding,
             data_format=data_format,
@@ -241,60 +253,62 @@ class MaskedConv1D(MaskedConv):
 
 class MaskedConv2D(MaskedConv):
     """
-        Same layer as Conv2D, except that the kernel is masked so that a "pixel" only sees previous "pixels".
-        See "Conditional Image Generation with PixelCNN Decoders".
+    Same layer as Conv2D, except that the kernel is masked so that a "pixel" only sees previous "pixels".
+    See "Conditional Image Generation with PixelCNN Decoders".
 
-        :param filters: Integer, the dimensionality of the output space (i.e. the number of filters in the convolution).
-        :param kernel_size: An integer or tuple/list of n integers, specifying the length of the convolution window.
-        :param mask_center: A boolean, if False then the center of the kernel is not masked.
-        :param strides: An integer or tuple/list of n integers,
-            specifying the stride length of the convolution.
-            Specifying any stride value != 1 is incompatible with specifying
-            any `dilation_rate` value != 1.
-        :param padding: One of `"valid"`,  `"same"` (case-insensitive).
-        :param data_format: A string, one of `channels_last` (default) or `channels_first`.
-            The ordering of the dimensions in the inputs.
-            `channels_last` corresponds to inputs with shape
-            `(batch, ..., channels)` while `channels_first` corresponds to
-            inputs with shape `(batch, channels, ...)`.
-        :param dilation_rate: An integer or tuple/list of n integers, specifying
-            the dilation rate to use for dilated convolution.
-            Currently, specifying any `dilation_rate` value != 1 is
-            incompatible with specifying any `strides` value != 1.
-        :param activation: Activation function. Set it to None to maintain a linear activation.
-        :param use_bias: Boolean, whether the layer uses a bias.
-        :param kernel_initializer: An initializer for the convolution kernel.
-        :param bias_initializer: An initializer for the bias vector. If None, the default initializer will be used.
-        :param kernel_regularizer: Optional regularizer for the convolution kernel.
-        :param bias_regularizer: Optional regularizer for the bias vector.
-        :param activity_regularizer: Optional regularizer function for the output.
-        :param kernel_constraint: Optional projection function to be applied to the
-            kernel after being updated by an `Optimizer` (e.g. used to implement
-            norm constraints or value constraints for layer weights). The function
-            must take as input the unprojected variable and must return the
-            projected variable (which must have the same shape). Constraints are
-            not safe to use when doing asynchronous distributed training.
-        :param bias_constraint: Optional projection function to be applied to the
-            bias after being updated by an `Optimizer`.
+    :param filters: Integer, the dimensionality of the output space (i.e. the number of filters in the convolution).
+    :param kernel_size: An integer or tuple/list of n integers, specifying the length of the convolution window.
+    :param mask_center: A boolean, if False then the center of the kernel is not masked.
+    :param kernel_mask: (Optional) If specified, replaces the default mask.
+    :param strides: An integer or tuple/list of n integers,
+        specifying the stride length of the convolution.
+        Specifying any stride value != 1 is incompatible with specifying
+        any `dilation_rate` value != 1.
+    :param padding: One of `"valid"`,  `"same"` (case-insensitive).
+    :param data_format: A string, one of `channels_last` (default) or `channels_first`.
+        The ordering of the dimensions in the inputs.
+        `channels_last` corresponds to inputs with shape
+        `(batch, ..., channels)` while `channels_first` corresponds to
+        inputs with shape `(batch, channels, ...)`.
+    :param dilation_rate: An integer or tuple/list of n integers, specifying
+        the dilation rate to use for dilated convolution.
+        Currently, specifying any `dilation_rate` value != 1 is
+        incompatible with specifying any `strides` value != 1.
+    :param activation: Activation function. Set it to None to maintain a linear activation.
+    :param use_bias: Boolean, whether the layer uses a bias.
+    :param kernel_initializer: An initializer for the convolution kernel.
+    :param bias_initializer: An initializer for the bias vector. If None, the default initializer will be used.
+    :param kernel_regularizer: Optional regularizer for the convolution kernel.
+    :param bias_regularizer: Optional regularizer for the bias vector.
+    :param activity_regularizer: Optional regularizer function for the output.
+    :param kernel_constraint: Optional projection function to be applied to the
+        kernel after being updated by an `Optimizer` (e.g. used to implement
+        norm constraints or value constraints for layer weights). The function
+        must take as input the unprojected variable and must return the
+        projected variable (which must have the same shape). Constraints are
+        not safe to use when doing asynchronous distributed training.
+    :param bias_constraint: Optional projection function to be applied to the
+        bias after being updated by an `Optimizer`.
 
-        Input shape:
-            4D tensor with shape:
-                `(samples, channels, conv_dim1, conv_dim_2)` if data_format='channels_first'
-            or 4D tensor with shape:
-                `(samples, conv_dim1, conv_dim2, channels)` if data_format='channels_last'.
+    Input shape:
+        4D tensor with shape:
+            `(samples, channels, conv_dim1, conv_dim_2)` if data_format='channels_first'
+        or 4D tensor with shape:
+            `(samples, conv_dim1, conv_dim2, channels)` if data_format='channels_last'.
 
-        Output shape:
-            4D tensor with shape:
-                `(samples, filters, new_conv_dim1, new_conv_dim2)` if data_format='channels_first'
-            or 4D tensor with shape:
-                `(samples, new_conv_dim1, new_conv_dim2, filters)` if data_format='channels_last'.
-                `new_conv_dims` values might have changed due to padding.
-        """
+    Output shape:
+        4D tensor with shape:
+            `(samples, filters, new_conv_dim1, new_conv_dim2)` if data_format='channels_first'
+        or 4D tensor with shape:
+            `(samples, new_conv_dim1, new_conv_dim2, filters)` if data_format='channels_last'.
+            `new_conv_dims` values might have changed due to padding.
+    """
 
     def __init__(self,
                  filters,
                  kernel_size,
                  mask_center=True,
+                 kernel_mask=None,
                  strides=(1, 1),
                  padding='valid',
                  data_format=None,
@@ -314,6 +328,7 @@ class MaskedConv2D(MaskedConv):
             filters=filters,
             kernel_size=kernel_size,
             mask_center=mask_center,
+            kernel_mask=kernel_mask,
             strides=strides,
             padding=padding,
             data_format=data_format,
@@ -332,61 +347,63 @@ class MaskedConv2D(MaskedConv):
 
 class MaskedConv3D(MaskedConv):
     """
-            Same layer as Conv2D, except that the kernel is masked so that a "pixel" only sees previous "pixels".
-            See "Conditional Image Generation with PixelCNN Decoders".
+    Same layer as Conv2D, except that the kernel is masked so that a "pixel" only sees previous "pixels".
+    See "Conditional Image Generation with PixelCNN Decoders".
 
-            :param filters: Integer, the dimensionality of the output space
-            (i.e. the number of filters in the convolution).
-            :param kernel_size: An integer or tuple/list of n integers, specifying the length of the convolution window.
-            :param mask_center: A boolean, if False then the center of the kernel is not masked.
-            :param strides: An integer or tuple/list of n integers,
-                specifying the stride length of the convolution.
-                Specifying any stride value != 1 is incompatible with specifying
-                any `dilation_rate` value != 1.
-            :param padding: One of `"valid"`,  `"same"` (case-insensitive).
-            :param data_format: A string, one of `channels_last` (default) or `channels_first`.
-                The ordering of the dimensions in the inputs.
-                `channels_last` corresponds to inputs with shape
-                `(batch, ..., channels)` while `channels_first` corresponds to
-                inputs with shape `(batch, channels, ...)`.
-            :param dilation_rate: An integer or tuple/list of n integers, specifying
-                the dilation rate to use for dilated convolution.
-                Currently, specifying any `dilation_rate` value != 1 is
-                incompatible with specifying any `strides` value != 1.
-            :param activation: Activation function. Set it to None to maintain a linear activation.
-            :param use_bias: Boolean, whether the layer uses a bias.
-            :param kernel_initializer: An initializer for the convolution kernel.
-            :param bias_initializer: An initializer for the bias vector. If None, the default initializer will be used.
-            :param kernel_regularizer: Optional regularizer for the convolution kernel.
-            :param bias_regularizer: Optional regularizer for the bias vector.
-            :param activity_regularizer: Optional regularizer function for the output.
-            :param kernel_constraint: Optional projection function to be applied to the
-                kernel after being updated by an `Optimizer` (e.g. used to implement
-                norm constraints or value constraints for layer weights). The function
-                must take as input the unprojected variable and must return the
-                projected variable (which must have the same shape). Constraints are
-                not safe to use when doing asynchronous distributed training.
-            :param bias_constraint: Optional projection function to be applied to the
-                bias after being updated by an `Optimizer`.
+    :param filters: Integer, the dimensionality of the output space
+    (i.e. the number of filters in the convolution).
+    :param kernel_size: An integer or tuple/list of n integers, specifying the length of the convolution window.
+    :param mask_center: A boolean, if False then the center of the kernel is not masked.
+    :param kernel_mask: (Optional) If specified, replaces the default mask.
+    :param strides: An integer or tuple/list of n integers,
+        specifying the stride length of the convolution.
+        Specifying any stride value != 1 is incompatible with specifying
+        any `dilation_rate` value != 1.
+    :param padding: One of `"valid"`,  `"same"` (case-insensitive).
+    :param data_format: A string, one of `channels_last` (default) or `channels_first`.
+        The ordering of the dimensions in the inputs.
+        `channels_last` corresponds to inputs with shape
+        `(batch, ..., channels)` while `channels_first` corresponds to
+        inputs with shape `(batch, channels, ...)`.
+    :param dilation_rate: An integer or tuple/list of n integers, specifying
+        the dilation rate to use for dilated convolution.
+        Currently, specifying any `dilation_rate` value != 1 is
+        incompatible with specifying any `strides` value != 1.
+    :param activation: Activation function. Set it to None to maintain a linear activation.
+    :param use_bias: Boolean, whether the layer uses a bias.
+    :param kernel_initializer: An initializer for the convolution kernel.
+    :param bias_initializer: An initializer for the bias vector. If None, the default initializer will be used.
+    :param kernel_regularizer: Optional regularizer for the convolution kernel.
+    :param bias_regularizer: Optional regularizer for the bias vector.
+    :param activity_regularizer: Optional regularizer function for the output.
+    :param kernel_constraint: Optional projection function to be applied to the
+        kernel after being updated by an `Optimizer` (e.g. used to implement
+        norm constraints or value constraints for layer weights). The function
+        must take as input the unprojected variable and must return the
+        projected variable (which must have the same shape). Constraints are
+        not safe to use when doing asynchronous distributed training.
+    :param bias_constraint: Optional projection function to be applied to the
+        bias after being updated by an `Optimizer`.
 
-            Input shape:
-                4D tensor with shape:
-                    `(samples, channels, conv_dim1, conv_dim2, conv_dim3)` if data_format='channels_first'
-                or 4D tensor with shape:
-                    `(samples, conv_dim1, conv_dim2, conv_dim3, channels)` if data_format='channels_last'.
+    Input shape:
+        4D tensor with shape:
+            `(samples, channels, conv_dim1, conv_dim2, conv_dim3)` if data_format='channels_first'
+        or 4D tensor with shape:
+            `(samples, conv_dim1, conv_dim2, conv_dim3, channels)` if data_format='channels_last'.
 
-            Output shape:
-                5D tensor with shape:
-                    `(samples, filters, new_conv_dim1, new_conv_dim2, new_conv_dim3)` if data_format='channels_first'
-                or 5D tensor with shape:
-                    `(samples, new_conv_dim1, new_conv_dim2, new_conv_dim3, filters)` if data_format='channels_last'.
-                    `new_conv_dims` values might have changed due to padding.
-            """
+    Output shape:
+        5D tensor with shape:
+            `(samples, filters, new_conv_dim1, new_conv_dim2, new_conv_dim3)` if data_format='channels_first'
+        or 5D tensor with shape:
+            `(samples, new_conv_dim1, new_conv_dim2, new_conv_dim3, filters)` if data_format='channels_last'.
+            `new_conv_dims` values might have changed due to padding.
+    """
 
     def __init__(self,
                  filters,
                  kernel_size,
                  mask_center=True,
+                 kernel_mask=None,
                  strides=(1, 1, 1),
                  padding='valid',
                  data_format=None,
@@ -406,6 +423,7 @@ class MaskedConv3D(MaskedConv):
             filters=filters,
             kernel_size=kernel_size,
             mask_center=mask_center,
+            kernel_mask=kernel_mask,
             strides=strides,
             padding=padding,
             data_format=data_format,
@@ -423,15 +441,15 @@ class MaskedConv3D(MaskedConv):
 
 
 if __name__ == "__main__":
-    layer = MaskedConv2D(filters=1,
-                         kernel_size=3,
+    layer = MaskedConv3D(filters=1,
+                         kernel_size=(3, 5, 5),
                          mask_center=True,
                          padding="same",
                          use_bias=False,
                          kernel_initializer="ones")
 
-    x = tf.ones([1, 9, 9, 1])
+    x = tf.ones([1, 5, 9, 9, 1])
     y = layer(x)
 
-    print(tf.squeeze(y))
+    # print(tf.squeeze(y))
     print(tf.squeeze(layer.kernel_mask))
