@@ -119,14 +119,29 @@ class MaskedConvStack(Layer):
                                                                                              self.rank + 2))
 
     def call(self, inputs, **kwargs):
-        def map_convolution_function(index):
-            return self.single_convolution(inputs, index)
+        def loop_cond(i, _):
+            return i < self.stack_size
 
-        outputs = tf.map_fn(fn=map_convolution_function,
-                            elems=tf.range(self.stack_size),
-                            parallel_iterations=self.stack_size,
-                            dtype=self.dtype,
-                            )
+        def loop_body(i, array: tf.TensorArray):
+            step_output = self.single_convolution(inputs, i)
+            array = array.write(i, step_output)
+            i += 1
+            return i, array
+
+        loop_vars = [
+            tf.constant(0),
+            tf.TensorArray(dtype=self.dtype,
+                           size=self.stack_size,
+                           name="convolutions_outputs_array")
+        ]
+
+        _, output_array = tf.while_loop(cond=loop_cond,
+                                        body=loop_body,
+                                        loop_vars=loop_vars,
+                                        parallel_iterations=self.stack_size)
+        outputs: tf.Tensor = output_array.stack()
+        outputs.set_shape((self.stack_size, *outputs.shape[1:]))
+
         outputs = tf.squeeze(outputs, axis=-2)
         perm = [*range(1, self.rank + 1), 0, self.rank + 1]
         outputs = tf.transpose(outputs, perm)
@@ -138,7 +153,7 @@ class MaskedConvStack(Layer):
 
     @tf.function
     def single_convolution(self, inputs, index):
-        outputs = self._convolution_op(inputs, self.kernel[index])
+        outputs = self._convolution_op(inputs, self.kernel[index] * self.kernel_mask[index])
 
         if self.use_bias:
             outputs = tf.nn.bias_add(outputs, self.bias[index], data_format="NHWC")

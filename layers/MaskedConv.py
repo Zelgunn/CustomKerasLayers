@@ -83,10 +83,10 @@ class MaskedConv(Conv):
                  kernel_size,
                  mask_center=True,
                  kernel_mask=None,
-                 strides=(1, 1, 1),
+                 strides=1,
                  padding='valid',
                  data_format=None,
-                 dilation_rate=(1, 1, 1),
+                 dilation_rate=1,
                  activation=None,
                  use_bias=True,
                  kernel_initializer='glorot_uniform',
@@ -440,7 +440,7 @@ class MaskedConv3D(MaskedConv):
             **kwargs)
 
 
-if __name__ == "__main__":
+def main():
     layer = MaskedConv3D(filters=1,
                          kernel_size=(3, 5, 5),
                          mask_center=True,
@@ -453,3 +453,7 @@ if __name__ == "__main__":
 
     # print(tf.squeeze(y))
     print(tf.squeeze(layer.kernel_mask))
+
+
+if __name__ == "__main__":
+    main()
