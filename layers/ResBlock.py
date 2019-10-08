@@ -458,28 +458,27 @@ class ResBasicBlock3DTranspose(ResBasicBlockNDTranspose):
 
 # endregion
 
-# region Blocks (of basic blocks)
 
 class ResBlockND(Layer):
     def __init__(self,
                  rank: int,
                  filters: int,
-                 basic_block_count: int,
-                 basic_block_depth: int,
-                 kernel_size: Union[int, Tuple, List],
-                 strides: Union[int, Tuple, List],
-                 data_format: Union[None, AnyStr],
-                 dilation_rate: Union[int, Tuple, List],
-                 activation: Union[None, AnyStr, Callable],
-                 use_bias: bool,
-                 use_batch_norm: bool,
-                 kernel_initializer: Union[Dict, AnyStr, Callable],
-                 bias_initializer: Union[Dict, AnyStr, Callable],
-                 kernel_regularizer: Union[None, Dict, AnyStr, Callable],
-                 bias_regularizer: Union[None, Dict, AnyStr, Callable],
-                 activity_regularizer: Union[None, Dict, AnyStr, Callable],
-                 kernel_constraint: Union[None, Dict, AnyStr, Callable],
-                 bias_constraint: Union[None, Dict, AnyStr, Callable],
+                 basic_block_count=1,
+                 basic_block_depth=2,
+                 kernel_size: Union[int, Tuple, List] = 3,
+                 strides: Union[int, Tuple, List] = 1,
+                 data_format: AnyStr = None,
+                 dilation_rate: Union[int, Tuple, List] = 1,
+                 activation: Union[None, AnyStr, Callable] = "relu",
+                 use_bias: bool = True,
+                 use_batch_norm: bool = True,
+                 kernel_initializer: Union[Dict, AnyStr, Callable] = "he_normal",
+                 bias_initializer: Union[Dict, AnyStr, Callable] = "zeros",
+                 kernel_regularizer: Union[Dict, AnyStr, Callable] = None,
+                 bias_regularizer: Union[Dict, AnyStr, Callable] = None,
+                 activity_regularizer: Union[Dict, AnyStr, Callable] = None,
+                 kernel_constraint: Union[Dict, AnyStr, Callable] = None,
+                 bias_constraint: Union[Dict, AnyStr, Callable] = None,
                  **kwargs):
         assert rank in [1, 2, 3]
         assert basic_block_count > 0
@@ -655,7 +654,7 @@ class ResBlock1D(ResBlockND):
 class ResBlock2D(ResBlockND):
     def __init__(self,
                  filters,
-                 basic_block_count: int,
+                 basic_block_count=1,
                  basic_block_depth=2,
                  kernel_size=(3, 3),
                  strides=(1, 1),
