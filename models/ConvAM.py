@@ -6,7 +6,7 @@ from typing import Union, List
 from CustomKerasLayers.layers.MaskedConvStack import MaskedConvStack
 
 
-def compute_autoregression_loss(y_true, y_pred_distribution):
+def compute_autoregression_loss_(y_true, y_pred_distribution):
     y_pred_distribution_shape = tf.shape(y_pred_distribution)
     batch_size = y_pred_distribution_shape[0]
     n_bins = y_pred_distribution_shape[-1]
@@ -18,6 +18,7 @@ def compute_autoregression_loss(y_true, y_pred_distribution):
     y_pred_distribution = tf.math.log(y_pred_distribution)
 
     n_bins = tf.cast(n_bins, tf.float32)
+    # y_true = tf.stop_gradient(y_true)
     y_true = tf.reshape(y_true, [batch_size, -1, 1])
     y_true = tf.clip_by_value(y_true * n_bins, 0.0, n_bins - 1.0)
     y_true = tf.cast(y_true, tf.int32)
@@ -25,6 +26,31 @@ def compute_autoregression_loss(y_true, y_pred_distribution):
     selected_bins = tf.gather(y_pred_distribution, indices=y_true, batch_dims=-1)
     loss = - tf.reduce_mean(selected_bins)
     return loss
+
+
+def compute_autoregression_loss(y_true, y_pred_distribution):
+    y_pred_distribution_shape = tf.shape(y_pred_distribution)
+    batch_size = y_pred_distribution_shape[0]
+    cpd_channels = y_pred_distribution_shape[-1]
+    cpd_channels_f = tf.cast(cpd_channels, tf.float32)
+    epsilon = backend.epsilon()
+
+    y_pred_distribution = tf.nn.softmax(y_pred_distribution, axis=-1)
+    y_pred_distribution = tf.reshape(y_pred_distribution, [batch_size, -1, cpd_channels])
+    y_pred_distribution = tf.clip_by_value(y_pred_distribution, epsilon, 1.0 - epsilon)
+    log_y_pred_distribution = tf.math.log(y_pred_distribution)
+
+    # y_true = tf.stop_gradient(y_true)
+    y_true = tf.reshape(y_true, [batch_size, -1, 1])
+    index = tf.clip_by_value(y_true * cpd_channels_f, 0.0, cpd_channels_f - 1.0)
+    index = tf.cast(index, tf.int32)
+
+    selected = tf.gather(log_y_pred_distribution, batch_dims=-1, indices=index)
+    selected = tf.squeeze(selected, axis=-1)
+
+    s = tf.reduce_sum(selected, axis=-1)
+    nll = - tf.reduce_mean(s)
+    return nll
 
 
 class ConvAM(Model):
@@ -67,8 +93,8 @@ class ConvAM(Model):
 
     def call(self, inputs, training=None, mask=None):
         outputs = tf.expand_dims(inputs, axis=-1)
-        for layer in self.conv_layers:
-            outputs = layer(outputs)
+        for i in range(len(self.conv_layers)):
+            outputs = self.conv_layers[i](outputs)
         return outputs
 
     @tf.function

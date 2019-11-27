@@ -9,6 +9,7 @@ import numpy as np
 from typing import Tuple, List, Union, AnyStr, Callable, Dict, Optional
 
 from CustomKerasLayers.utils import to_list
+from CustomKerasLayers import Conv1DTranspose
 
 
 # region Residual helpers
@@ -56,7 +57,8 @@ class ResBasicBlockND(Layer):
                  data_format: Union[None, AnyStr],
                  dilation_rate: Union[int, Tuple, List],
                  activation: Union[None, AnyStr, Callable],
-                 use_bias: bool,
+                 use_residual_bias: bool,
+                 use_conv_bias: bool,
                  use_batch_norm: bool,
                  kernel_initializer: Union[Dict, AnyStr, Callable],
                  bias_initializer: Union[Dict, AnyStr, Callable],
@@ -81,7 +83,9 @@ class ResBasicBlockND(Layer):
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.dilation_rate = conv_utils.normalize_tuple(dilation_rate, rank, "dilation_rate")
         self.activation = activations.get(activation)
-        self.use_bias = use_bias
+        self.use_residual_bias = use_residual_bias
+        self.use_conv_bias = use_conv_bias
+        self.use_conv_bias = use_conv_bias
         self.use_batch_norm = use_batch_norm
 
         self.kernel_initializer = initializers.get(kernel_initializer)
@@ -117,7 +121,7 @@ class ResBasicBlockND(Layer):
                                          padding="same",
                                          data_format=self.data_format,
                                          dilation_rate=self.dilation_rate,
-                                         use_bias=False,
+                                         use_bias=self.use_conv_bias,
                                          kernel_initializer=kernel_initializer,
                                          kernel_regularizer=self.kernel_regularizer,
                                          activity_regularizer=self.activity_regularizer,
@@ -129,7 +133,7 @@ class ResBasicBlockND(Layer):
             self.batch_norm_layers = [BatchNormalization() for _ in range(self.depth)]
 
         self.residual_multiplier = ResidualMultiplier()
-        if self.use_bias:
+        if self.use_residual_bias:
             self.residual_bias = ResidualBias()
             self.conv_biases = [ResidualBias() for _ in range(self.depth)]
             self.activation_biases = [ResidualBias() for _ in range(self.depth - 1)]
@@ -161,7 +165,7 @@ class ResBasicBlockND(Layer):
     def call(self, inputs, **kwargs):
         outputs = inputs
         for i in range(self.depth):
-            if self.use_bias:
+            if self.use_residual_bias:
                 outputs = self.conv_biases[i](outputs)
             outputs = self.conv_layers[i](outputs)
 
@@ -170,7 +174,7 @@ class ResBasicBlockND(Layer):
 
             if i < (self.depth - 1):
                 if self.activation is not None:
-                    if self.use_bias:
+                    if self.use_residual_bias:
                         outputs = self.activation_biases[i](outputs)
                     outputs = self.activation(outputs)
 
@@ -179,7 +183,7 @@ class ResBasicBlockND(Layer):
 
         # x_k+1 = x_k + a*f(x_k) + b
         outputs = self.residual_multiplier(outputs)
-        if self.use_bias:
+        if self.use_residual_bias:
             outputs = self.residual_bias(outputs)
         outputs = inputs + outputs
 
@@ -236,7 +240,8 @@ class ResBasicBlockND(Layer):
                 "data_format": self.data_format,
                 "dilation_rate": self.dilation_rate,
                 "activation": activations.serialize(self.activation),
-                "use_bias": self.use_bias,
+                "use_residual_bias": self.use_residual_bias,
+                "use_conv_bias": self.use_conv_bias,
                 "kernel_initializer": initializers.serialize(self.kernel_initializer),
                 "bias_initializer": initializers.serialize(self.bias_initializer),
                 "kernel_regularizer": regularizers.serialize(self.kernel_regularizer),
@@ -252,6 +257,7 @@ class ResBasicBlockND(Layer):
         pass
 
 
+# region ResBasicBlock - 1D/2D/3D
 class ResBasicBlock1D(ResBasicBlockND):
     def __init__(self, filters,
                  depth=2,
@@ -260,7 +266,8 @@ class ResBasicBlock1D(ResBasicBlockND):
                  data_format=None,
                  dilation_rate=1,
                  activation="relu",
-                 use_bias=True,
+                 use_residual_bias=True,
+                 use_conv_bias=False,
                  use_batch_norm=True,
                  kernel_initializer="he_normal",
                  bias_initializer="zeros",
@@ -273,7 +280,8 @@ class ResBasicBlock1D(ResBasicBlockND):
         super(ResBasicBlock1D, self).__init__(rank=1,
                                               filters=filters, depth=depth, kernel_size=kernel_size,
                                               strides=strides, data_format=data_format,
-                                              dilation_rate=dilation_rate, activation=activation, use_bias=use_bias,
+                                              dilation_rate=dilation_rate, activation=activation,
+                                              use_residual_bias=use_residual_bias, use_conv_bias=use_conv_bias,
                                               use_batch_norm=use_batch_norm,
                                               kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
                                               kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
@@ -295,7 +303,8 @@ class ResBasicBlock2D(ResBasicBlockND):
                  data_format=None,
                  dilation_rate=1,
                  activation="relu",
-                 use_bias=True,
+                 use_residual_bias=True,
+                 use_conv_bias=False,
                  use_batch_norm=True,
                  kernel_initializer="he_normal",
                  bias_initializer="zeros",
@@ -308,7 +317,8 @@ class ResBasicBlock2D(ResBasicBlockND):
         super(ResBasicBlock2D, self).__init__(rank=2,
                                               filters=filters, depth=depth, kernel_size=kernel_size,
                                               strides=strides, data_format=data_format,
-                                              dilation_rate=dilation_rate, activation=activation, use_bias=use_bias,
+                                              dilation_rate=dilation_rate, activation=activation,
+                                              use_residual_bias=use_residual_bias, use_conv_bias=use_conv_bias,
                                               use_batch_norm=use_batch_norm,
                                               kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
                                               kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
@@ -330,7 +340,8 @@ class ResBasicBlock3D(ResBasicBlockND):
                  data_format=None,
                  dilation_rate=1,
                  activation="relu",
-                 use_bias=True,
+                 use_residual_bias=True,
+                 use_conv_bias=False,
                  use_batch_norm=True,
                  kernel_initializer="he_normal",
                  bias_initializer="zeros",
@@ -343,7 +354,8 @@ class ResBasicBlock3D(ResBasicBlockND):
         super(ResBasicBlock3D, self).__init__(rank=3,
                                               filters=filters, depth=depth, kernel_size=kernel_size,
                                               strides=strides, data_format=data_format,
-                                              dilation_rate=dilation_rate, activation=activation, use_bias=use_bias,
+                                              dilation_rate=dilation_rate, activation=activation,
+                                              use_residual_bias=use_residual_bias, use_conv_bias=use_conv_bias,
                                               use_batch_norm=use_batch_norm,
                                               kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
                                               kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
@@ -355,12 +367,13 @@ class ResBasicBlock3D(ResBasicBlockND):
         config = super(ResBasicBlock3D, self).get_config()
         config.pop("rank")
         return config
+# endregion
 
 
 class ResBasicBlockNDTranspose(ResBasicBlockND):
     def get_conv_layer_type(self):
-        assert self.rank in [2, 3]
-        return Conv2DTranspose if self.rank is 2 else Conv3DTranspose
+        assert self.rank in [1, 2, 3]
+        return Conv1DTranspose if self.rank is 1 else Conv2DTranspose if self.rank is 2 else Conv3DTranspose
 
     # noinspection DuplicatedCode
     def compute_output_shape(self, input_shape):
@@ -382,6 +395,45 @@ class ResBasicBlockNDTranspose(ResBasicBlockND):
             return (input_shape[0],) + get_new_space(input_shape[1:-1]) + (self.filters,)
 
 
+# region ResBasicBlock - 1D/2D/3D
+class ResBasicBlock1DTranspose(ResBasicBlockNDTranspose):
+    def __init__(self, filters,
+                 depth=2,
+                 kernel_size=3,
+                 strides=1,
+                 data_format=None,
+                 activation="relu",
+                 use_residual_bias=True,
+                 use_conv_bias=False,
+                 use_batch_norm=True,
+                 kernel_initializer="he_normal",
+                 bias_initializer="zeros",
+                 kernel_regularizer=None,
+                 bias_regularizer=None,
+                 activity_regularizer=None,
+                 kernel_constraint=None,
+                 bias_constraint=None,
+                 **kwargs):
+        super(ResBasicBlock1DTranspose, self).__init__(rank=1,
+                                                       filters=filters, depth=depth, kernel_size=kernel_size,
+                                                       strides=strides, data_format=data_format,
+                                                       activation=activation, use_residual_bias=use_residual_bias,
+                                                       use_conv_bias=use_conv_bias,
+                                                       use_batch_norm=use_batch_norm,
+                                                       kernel_initializer=kernel_initializer,
+                                                       bias_initializer=bias_initializer,
+                                                       kernel_regularizer=kernel_regularizer,
+                                                       bias_regularizer=bias_regularizer,
+                                                       activity_regularizer=activity_regularizer,
+                                                       kernel_constraint=kernel_constraint,
+                                                       bias_constraint=bias_constraint,
+                                                       **kwargs)
+
+    def get_config(self):
+        config = super(ResBasicBlock1DTranspose, self).get_config()
+        config.pop("rank")
+        return config
+
 class ResBasicBlock2DTranspose(ResBasicBlockNDTranspose):
     def __init__(self, filters,
                  depth=2,
@@ -389,7 +441,8 @@ class ResBasicBlock2DTranspose(ResBasicBlockNDTranspose):
                  strides=(1, 1),
                  data_format=None,
                  activation="relu",
-                 use_bias=True,
+                 use_residual_bias=True,
+                 use_conv_bias=False,
                  use_batch_norm=True,
                  kernel_initializer="he_normal",
                  bias_initializer="zeros",
@@ -402,7 +455,8 @@ class ResBasicBlock2DTranspose(ResBasicBlockNDTranspose):
         super(ResBasicBlock2DTranspose, self).__init__(rank=2,
                                                        filters=filters, depth=depth, kernel_size=kernel_size,
                                                        strides=strides, data_format=data_format,
-                                                       activation=activation, use_bias=use_bias,
+                                                       activation=activation, use_residual_bias=use_residual_bias,
+                                                       use_conv_bias=use_conv_bias,
                                                        use_batch_norm=use_batch_norm,
                                                        kernel_initializer=kernel_initializer,
                                                        bias_initializer=bias_initializer,
@@ -426,7 +480,8 @@ class ResBasicBlock3DTranspose(ResBasicBlockNDTranspose):
                  strides=(1, 1, 1),
                  data_format=None,
                  activation="relu",
-                 use_bias=True,
+                 use_residual_bias=True,
+                 use_conv_bias=False,
                  use_batch_norm=True,
                  kernel_initializer="he_normal",
                  bias_initializer="zeros",
@@ -439,7 +494,8 @@ class ResBasicBlock3DTranspose(ResBasicBlockNDTranspose):
         super(ResBasicBlock3DTranspose, self).__init__(rank=3,
                                                        filters=filters, depth=depth, kernel_size=kernel_size,
                                                        strides=strides, data_format=data_format,
-                                                       activation=activation, use_bias=use_bias,
+                                                       activation=activation, use_residual_bias=use_residual_bias,
+                                                       use_conv_bias=use_conv_bias,
                                                        use_batch_norm=use_batch_norm,
                                                        kernel_initializer=kernel_initializer,
                                                        bias_initializer=bias_initializer,
@@ -455,9 +511,10 @@ class ResBasicBlock3DTranspose(ResBasicBlockNDTranspose):
         config.pop("rank")
         return config
 
-
+# endregion
 # endregion
 
+# region ResBlocks
 
 class ResBlockND(Layer):
     def __init__(self,
@@ -470,7 +527,8 @@ class ResBlockND(Layer):
                  data_format: AnyStr = None,
                  dilation_rate: Union[int, Tuple, List] = 1,
                  activation: Union[None, AnyStr, Callable] = "relu",
-                 use_bias: bool = True,
+                 use_residual_bias: bool = True,
+                 use_conv_bias: bool = False,
                  use_batch_norm: bool = True,
                  kernel_initializer: Union[Dict, AnyStr, Callable] = "he_normal",
                  bias_initializer: Union[Dict, AnyStr, Callable] = "zeros",
@@ -495,7 +553,8 @@ class ResBlockND(Layer):
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.dilation_rate = conv_utils.normalize_tuple(dilation_rate, rank, "dilation_rate")
         self.activation = activations.get(activation)
-        self.use_bias = use_bias
+        self.use_residual_bias = use_residual_bias
+        self.use_conv_bias = use_conv_bias
         self.use_batch_norm = use_batch_norm
 
         self.kernel_initializer = initializers.get(kernel_initializer)
@@ -522,7 +581,8 @@ class ResBlockND(Layer):
                                           data_format=self.data_format,
                                           dilation_rate=self.dilation_rate,
                                           activation=self.activation,
-                                          use_bias=self.use_bias,
+                                          use_residual_bias=self.use_residual_bias,
+                                          use_conv_bias=self.use_conv_bias,
                                           use_batch_norm=self.use_batch_norm,
                                           kernel_initializer=self.kernel_initializer,
                                           bias_initializer=self.bias_initializer,
@@ -592,7 +652,8 @@ class ResBlockND(Layer):
                 "data_format": self.data_format,
                 "dilation_rate": self.dilation_rate,
                 "activation": activation,
-                "use_bias": self.use_bias,
+                "use_residual_bias": self.use_residual_bias,
+                "use_conv_bias": self.use_conv_bias,
                 "kernel_initializer": initializers.serialize(self.kernel_initializer),
                 "bias_initializer": initializers.serialize(self.bias_initializer),
                 "kernel_regularizer": regularizers.serialize(self.kernel_regularizer),
@@ -623,7 +684,8 @@ class ResBlock1D(ResBlockND):
                  data_format=None,
                  dilation_rate=1,
                  activation="relu",
-                 use_bias=True,
+                 use_residual_bias=True,
+                 use_conv_bias=False,
                  use_batch_norm=True,
                  kernel_initializer="he_normal",
                  bias_initializer="zeros",
@@ -637,7 +699,8 @@ class ResBlock1D(ResBlockND):
                                          filters=filters, basic_block_count=basic_block_count,
                                          basic_block_depth=basic_block_depth, kernel_size=kernel_size,
                                          strides=strides, data_format=data_format,
-                                         dilation_rate=dilation_rate, activation=activation, use_bias=use_bias,
+                                         dilation_rate=dilation_rate, activation=activation,
+                                         use_residual_bias=use_residual_bias, use_conv_bias=use_conv_bias,
                                          use_batch_norm=use_batch_norm,
                                          kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
                                          kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
@@ -661,7 +724,8 @@ class ResBlock2D(ResBlockND):
                  data_format=None,
                  dilation_rate=1,
                  activation="relu",
-                 use_bias=True,
+                 use_residual_bias=True,
+                 use_conv_bias=False,
                  use_batch_norm=True,
                  kernel_initializer="he_normal",
                  bias_initializer="zeros",
@@ -675,7 +739,8 @@ class ResBlock2D(ResBlockND):
                                          filters=filters, basic_block_count=basic_block_count,
                                          basic_block_depth=basic_block_depth, kernel_size=kernel_size,
                                          strides=strides, data_format=data_format,
-                                         dilation_rate=dilation_rate, activation=activation, use_bias=use_bias,
+                                         dilation_rate=dilation_rate, activation=activation,
+                                         use_residual_bias=use_residual_bias, use_conv_bias=use_conv_bias,
                                          use_batch_norm=use_batch_norm,
                                          kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
                                          kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
@@ -699,7 +764,8 @@ class ResBlock3D(ResBlockND):
                  data_format=None,
                  dilation_rate=1,
                  activation="relu",
-                 use_bias=True,
+                 use_residual_bias=True,
+                 use_conv_bias=False,
                  use_batch_norm=True,
                  kernel_initializer="he_normal",
                  bias_initializer="zeros",
@@ -713,7 +779,8 @@ class ResBlock3D(ResBlockND):
                                          filters=filters, basic_block_count=basic_block_count,
                                          basic_block_depth=basic_block_depth, kernel_size=kernel_size,
                                          strides=strides, data_format=data_format,
-                                         dilation_rate=dilation_rate, activation=activation, use_bias=use_bias,
+                                         dilation_rate=dilation_rate, activation=activation,
+                                         use_residual_bias=use_residual_bias, use_conv_bias=use_conv_bias,
                                          use_batch_norm=use_batch_norm,
                                          kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
                                          kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
@@ -739,7 +806,8 @@ class ResBlockNDTranspose(ResBlockND):
                                                    data_format=self.data_format,
                                                    dilation_rate=self.dilation_rate,
                                                    activation=self.activation,
-                                                   use_bias=self.use_bias,
+                                                   use_residual_bias=self.use_residual_bias,
+                                                   use_conv_bias=self.use_conv_bias,
                                                    use_batch_norm=self.use_batch_norm,
                                                    kernel_initializer=self.kernel_initializer,
                                                    bias_initializer=self.bias_initializer,
@@ -780,7 +848,8 @@ class ResBlock2DTranspose(ResBlockNDTranspose):
                  data_format=None,
                  dilation_rate=1,
                  activation="relu",
-                 use_bias=True,
+                 use_residual_bias=True,
+                 use_conv_bias=False,
                  use_batch_norm=True,
                  kernel_initializer="he_normal",
                  bias_initializer="zeros",
@@ -794,7 +863,8 @@ class ResBlock2DTranspose(ResBlockNDTranspose):
                                                   filters=filters, basic_block_count=basic_block_count,
                                                   basic_block_depth=basic_block_depth, kernel_size=kernel_size,
                                                   strides=strides, data_format=data_format,
-                                                  dilation_rate=dilation_rate, activation=activation, use_bias=use_bias,
+                                                  dilation_rate=dilation_rate, activation=activation,
+                                                  use_residual_bias=use_residual_bias, use_conv_bias=use_conv_bias,
                                                   use_batch_norm=use_batch_norm,
                                                   kernel_initializer=kernel_initializer,
                                                   bias_initializer=bias_initializer,
@@ -820,7 +890,8 @@ class ResBlock3DTranspose(ResBlockNDTranspose):
                  data_format=None,
                  dilation_rate=1,
                  activation="relu",
-                 use_bias=True,
+                 use_residual_bias=True,
+                 use_conv_bias=False,
                  use_batch_norm=True,
                  kernel_initializer="he_normal",
                  bias_initializer="zeros",
@@ -834,7 +905,8 @@ class ResBlock3DTranspose(ResBlockNDTranspose):
                                                   filters=filters, basic_block_count=basic_block_count,
                                                   basic_block_depth=basic_block_depth, kernel_size=kernel_size,
                                                   strides=strides, data_format=data_format,
-                                                  dilation_rate=dilation_rate, activation=activation, use_bias=use_bias,
+                                                  dilation_rate=dilation_rate, activation=activation,
+                                                  use_residual_bias=use_residual_bias, use_conv_bias=use_conv_bias,
                                                   use_batch_norm=use_batch_norm,
                                                   kernel_initializer=kernel_initializer,
                                                   bias_initializer=bias_initializer,

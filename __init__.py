@@ -1,4 +1,7 @@
 # noinspection PyUnresolvedReferences
+from CustomKerasLayers.layers.Conv1DTranspose import Conv1DTranspose
+
+# noinspection PyUnresolvedReferences
 from CustomKerasLayers.layers.ResBlock import ResBlockND, ResBlockNDTranspose
 # noinspection PyUnresolvedReferences
 from CustomKerasLayers.layers.ResBlock import ResBlock1D, ResBlock2D, ResBlock3D
