@@ -367,6 +367,8 @@ class ResBasicBlock3D(ResBasicBlockND):
         config = super(ResBasicBlock3D, self).get_config()
         config.pop("rank")
         return config
+
+
 # endregion
 
 
@@ -433,6 +435,7 @@ class ResBasicBlock1DTranspose(ResBasicBlockNDTranspose):
         config = super(ResBasicBlock1DTranspose, self).get_config()
         config.pop("rank")
         return config
+
 
 class ResBasicBlock2DTranspose(ResBasicBlockNDTranspose):
     def __init__(self, filters,
@@ -510,6 +513,7 @@ class ResBasicBlock3DTranspose(ResBasicBlockNDTranspose):
         config = super(ResBasicBlock3DTranspose, self).get_config()
         config.pop("rank")
         return config
+
 
 # endregion
 # endregion
@@ -836,6 +840,48 @@ class ResBlockNDTranspose(ResBlockND):
             return (input_shape[0], self.filters) + get_new_space(input_shape[2:])
         else:
             return (input_shape[0],) + get_new_space(input_shape[1:-1]) + (self.filters,)
+
+
+class ResBlock1DTranspose(ResBlockNDTranspose):
+    def __init__(self,
+                 filters,
+                 basic_block_count: int,
+                 basic_block_depth=2,
+                 kernel_size=3,
+                 strides=1,
+                 data_format=None,
+                 dilation_rate=1,
+                 activation="relu",
+                 use_residual_bias=True,
+                 use_conv_bias=False,
+                 use_batch_norm=True,
+                 kernel_initializer="he_normal",
+                 bias_initializer="zeros",
+                 kernel_regularizer=None,
+                 bias_regularizer=None,
+                 activity_regularizer=None,
+                 kernel_constraint=None,
+                 bias_constraint=None,
+                 **kwargs):
+        super(ResBlock1DTranspose, self).__init__(rank=1,
+                                                  filters=filters, basic_block_count=basic_block_count,
+                                                  basic_block_depth=basic_block_depth, kernel_size=kernel_size,
+                                                  strides=strides, data_format=data_format,
+                                                  dilation_rate=dilation_rate, activation=activation,
+                                                  use_residual_bias=use_residual_bias, use_conv_bias=use_conv_bias,
+                                                  use_batch_norm=use_batch_norm,
+                                                  kernel_initializer=kernel_initializer,
+                                                  bias_initializer=bias_initializer,
+                                                  kernel_regularizer=kernel_regularizer,
+                                                  bias_regularizer=bias_regularizer,
+                                                  activity_regularizer=activity_regularizer,
+                                                  kernel_constraint=kernel_constraint, bias_constraint=bias_constraint,
+                                                  **kwargs)
+
+    def get_config(self):
+        config = super(ResBlock1DTranspose, self).get_config()
+        config.pop("rank")
+        return config
 
 
 class ResBlock2DTranspose(ResBlockNDTranspose):

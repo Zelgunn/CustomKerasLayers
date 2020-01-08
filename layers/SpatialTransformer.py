@@ -1,7 +1,6 @@
 import tensorflow as tf
 from tensorflow.python.keras.layers import Layer
 from tensorflow.python.keras import Model
-
 import numpy as np
 from typing import Tuple, Union
 
@@ -20,7 +19,12 @@ class SpatialTransformer(Layer):
         will also output `theta`, the affine transformation matrix.
 
     """
-    def __init__(self, localisation_net: Union[Model, Layer], output_size=None, data_format=None, **kwargs):
+
+    def __init__(self,
+                 localisation_net: Union[Model, Layer],
+                 output_size=None,
+                 data_format=None,
+                 **kwargs):
         super(SpatialTransformer, self).__init__(**kwargs)
         self.localisation_net: Model = localisation_net
         self.localisation_output = None
@@ -30,52 +34,78 @@ class SpatialTransformer(Layer):
         self.output_size = output_size
 
     def build(self, input_shape):
-        localisation_output_shape = self.localisation_net.compute_output_shape(input_shape)
-        localisation_output_shape_check = list(localisation_output_shape)
-        localisation_output_shape_check.remove(None)
-        # noinspection PyUnresolvedReferences
-        assert np.all(np.greater(localisation_output_shape_check, 0)), \
-            "Negative output shape from localisation net : {0}".format(localisation_output_shape)
+        if isinstance(input_shape, (tuple, list)) and len(input_shape) == 2:
+            loc_input_shape = input_shape[0]
+        else:
+            loc_input_shape = input_shape
+        localisation_output_shape = self.localisation_net.compute_output_shape(loc_input_shape)
+
         if len(localisation_output_shape) != 2:
             output_dim = np.prod(localisation_output_shape[1:])
         else:
             output_dim = localisation_output_shape[-1]
 
-        if output_dim != 6:
-            self.theta_kernel = self.add_weight(name="theta_kernel", shape=[output_dim, 6],
-                                                initializer="he_normal")
-            self.theta_bias = self.add_weight(name="theta_bias", shape=[6],
-                                              initializer="zeros")
+        if output_dim != self.localisation_dim:
+            self.theta_kernel = self.add_weight(name="theta_kernel", shape=[output_dim, self.localisation_dim],
+                                                initializer=tf.keras.initializers.VarianceScaling(scale=0.5))
+
+            self.theta_bias = self.add_weight(name="theta_bias", shape=[self.localisation_dim],
+                                              initializer=self.bias_identity_init)
 
         super(SpatialTransformer, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
-        batch_size = tf.shape(inputs)[0]
-        theta = self.localisation_net(inputs)
+        if isinstance(inputs, (tuple, list)) and len(inputs) == 2:
+            loc_inputs, transformed_inputs = inputs
+        else:
+            loc_inputs = transformed_inputs = inputs
 
-        if self.theta_kernel is not None:
-            with tf.name_scope("theta_regression"):
-                if len(self.localisation_net.output_shape) != 2:
-                    theta = tf.reshape(theta, [batch_size, -1])
-                theta = theta @ self.theta_kernel + self.theta_bias
-        theta = tf.reshape(theta, [batch_size, 2, 3])
+        theta = self.get_theta(loc_inputs)
 
         if self.channels_first:
-            inputs = tf.transpose(inputs, [0, 2, 3, 1])
+            transformed_inputs = tf.transpose(inputs, [0, 2, 3, 1])
 
-        outputs = spatial_transformation(inputs, theta, self.output_size)
+        outputs = self.transform_inputs(transformed_inputs, theta)
 
         if self.channels_first:
-            outputs = tf.transpose(inputs, [0, 3, 1, 2])
+            outputs = tf.transpose(transformed_inputs, [0, 3, 1, 2])
 
         if "output_theta" in kwargs and kwargs["output_theta"]:
             outputs = [outputs, theta]
 
         return outputs
 
+    def get_theta(self, inputs):
+        batch_size = tf.shape(inputs)[0]
+        theta = self.localisation_net(inputs)
+        theta = self._project_theta(theta, batch_size)
+        theta = tf.reshape(theta, [batch_size, 2, 3])
+        return theta
+
+    def _project_theta(self, theta, batch_size):
+        if self.theta_kernel is not None:
+            with tf.name_scope("theta_regression"):
+                if len(self.localisation_net.output_shape) != 2:
+                    theta = tf.reshape(theta, [batch_size, -1])
+                theta = theta @ self.theta_kernel + self.theta_bias
+        return theta
+
+    def transform_inputs(self, inputs, theta):
+        return spatial_transformation(inputs, theta, self.output_size)
+
     @property
     def channels_first(self):
         return self.data_format == "channels_first"
+
+    @property
+    def localisation_dim(self) -> int:
+        return 6
+
+    # def kernel_identity_init(self, shape, dtype=None):
+    #     return tf.keras.initializers.VarianceScaling(scale=1e-1)
+
+    def bias_identity_init(self, shape, dtype=None):
+        return tf.constant([1.0, 0.0, 0.0, 0.0, 1.0, 0.0], dtype=tf.float32)
 
     def compute_output_shape(self, input_shape):
         assert len(input_shape) == 4
@@ -118,11 +148,11 @@ def affine_grid(theta: tf.Tensor,
         else:
             width, height = tf.unstack(size)
         # Normalized grid (2D)
-        x = tf.linspace(-1.0, 1.0, width)
+        x = tf.linspace(-1.0, 1.0 - 1.0 / tf.cast(width, tf.float32), width)
         if isinstance(size, tuple) and (width == height):
             y = x
         else:
-            y = tf.linspace(-1.0, 1.0, height)
+            y = tf.linspace(-1.0, 1.0 - 1.0 / tf.cast(height, tf.float32), height)
         x_grid, y_grid = tf.meshgrid(x, y)
 
         # Flatten
