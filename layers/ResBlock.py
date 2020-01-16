@@ -603,9 +603,9 @@ class ResBlockND(Layer):
 
     def call(self, inputs, **kwargs):
         layer = inputs
-        with tf.name_scope("residual_block"):
-            for basic_block in self.basic_blocks:
-                layer = basic_block(layer)
+        # with tf.name_scope("residual_block"):
+        for basic_block in self.basic_blocks:
+            layer = basic_block(layer)
         return layer
 
     # noinspection DuplicatedCode
@@ -672,7 +672,7 @@ class ResBlockND(Layer):
     # noinspection PyUnresolvedReferences
     @staticmethod
     def get_fixup_initializer(model_depth: int) -> VarianceScaling:
-        return VarianceScaling(scale=1 / np.sqrt(model_depth), mode="fan_in", distribution="normal")
+        return VarianceScaling(scale=1 / np.sqrt(model_depth), mode="fan_in", distribution="truncated_normal")
 
     def compute_output_signature(self, input_signature):
         pass
@@ -681,7 +681,7 @@ class ResBlockND(Layer):
 class ResBlock1D(ResBlockND):
     def __init__(self,
                  filters,
-                 basic_block_count: int,
+                 basic_block_count=1,
                  basic_block_depth=2,
                  kernel_size=3,
                  strides=1,
