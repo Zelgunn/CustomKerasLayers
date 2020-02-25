@@ -62,6 +62,7 @@ class ResBasicBlockND(Layer):
                  use_batch_norm: bool,
                  kernel_initializer: Union[Dict, AnyStr, Callable],
                  bias_initializer: Union[Dict, AnyStr, Callable],
+                 projection_kernel_initializer: Union[Dict, AnyStr, Callable],
                  kernel_regularizer: Union[None, Dict, AnyStr, Callable],
                  bias_regularizer: Union[None, Dict, AnyStr, Callable],
                  activity_regularizer: Union[None, Dict, AnyStr, Callable],
@@ -90,6 +91,7 @@ class ResBasicBlockND(Layer):
 
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.bias_initializer = initializers.get(bias_initializer)
+        self.projection_kernel_initializer = initializers.get(projection_kernel_initializer)
         self.kernel_regularizer = regularizers.get(kernel_regularizer)
         self.bias_regularizer = regularizers.get(bias_regularizer)
         self.activity_regularizer = regularizers.get(activity_regularizer)
@@ -148,7 +150,6 @@ class ResBasicBlockND(Layer):
     def init_projection_layer(self):
         conv_layer_type = self.get_conv_layer_type()
         projection_kernel_size = conv_utils.normalize_tuple(1, self.rank, "projection_kernel_size")
-        projection_kernel_initializer = VarianceScaling()
         self.projection_layer = conv_layer_type(filters=self.filters,
                                                 kernel_size=projection_kernel_size,
                                                 strides=self.strides,
@@ -156,7 +157,7 @@ class ResBasicBlockND(Layer):
                                                 data_format=self.data_format,
                                                 dilation_rate=self.dilation_rate,
                                                 use_bias=False,
-                                                kernel_initializer=projection_kernel_initializer,
+                                                kernel_initializer=self.projection_kernel_initializer,
                                                 kernel_regularizer=self.kernel_regularizer,
                                                 activity_regularizer=self.activity_regularizer,
                                                 kernel_constraint=self.kernel_constraint,
@@ -536,6 +537,7 @@ class ResBlockND(Layer):
                  use_batch_norm: bool = True,
                  kernel_initializer: Union[Dict, AnyStr, Callable] = "he_normal",
                  bias_initializer: Union[Dict, AnyStr, Callable] = "zeros",
+                 projection_kernel_initializer: Union[Dict, AnyStr, Callable] = None,
                  kernel_regularizer: Union[Dict, AnyStr, Callable] = None,
                  bias_regularizer: Union[Dict, AnyStr, Callable] = None,
                  activity_regularizer: Union[Dict, AnyStr, Callable] = None,
@@ -563,6 +565,7 @@ class ResBlockND(Layer):
 
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.bias_initializer = initializers.get(bias_initializer)
+        self.projection_kernel_initializer = initializers.get(projection_kernel_initializer)
         self.kernel_regularizer = regularizers.get(kernel_regularizer)
         self.bias_regularizer = regularizers.get(bias_regularizer)
         self.activity_regularizer = regularizers.get(activity_regularizer)
@@ -590,6 +593,7 @@ class ResBlockND(Layer):
                                           use_batch_norm=self.use_batch_norm,
                                           kernel_initializer=self.kernel_initializer,
                                           bias_initializer=self.bias_initializer,
+                                          projection_kernel_initializer=self.projection_kernel_initializer,
                                           kernel_regularizer=self.kernel_regularizer,
                                           bias_regularizer=self.bias_regularizer,
                                           activity_regularizer=self.activity_regularizer,
@@ -671,8 +675,9 @@ class ResBlockND(Layer):
 
     # noinspection PyUnresolvedReferences
     @staticmethod
-    def get_fixup_initializer(model_depth: int) -> VarianceScaling:
-        return VarianceScaling(scale=1 / np.sqrt(model_depth), mode="fan_in", distribution="truncated_normal")
+    def get_fixup_initializer(model_depth: int, seed=None) -> VarianceScaling:
+        return VarianceScaling(scale=1 / np.sqrt(model_depth), mode="fan_in", distribution="truncated_normal",
+                               seed=seed)
 
     def compute_output_signature(self, input_signature):
         pass
@@ -815,6 +820,7 @@ class ResBlockNDTranspose(ResBlockND):
                                                    use_batch_norm=self.use_batch_norm,
                                                    kernel_initializer=self.kernel_initializer,
                                                    bias_initializer=self.bias_initializer,
+                                                   projection_kernel_initializer=self.projection_kernel_initializer,
                                                    kernel_regularizer=self.kernel_regularizer,
                                                    bias_regularizer=self.bias_regularizer,
                                                    activity_regularizer=self.activity_regularizer,
