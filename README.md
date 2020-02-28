@@ -32,33 +32,6 @@ Original paper (ResNet):
       year={2016}
     }
 
-#### Fixup Initialization
-ResBlocks in this project use the Fixup Initialization, which allows to drop Batch Normalization layers.
-
-To use fixup initialization, provide the ResBlocks with the initializer like so:
-
-```python
-from CustomKerasLayers import ResBlock2D
-
-total_depth = 36
-other_args = {"filters": 32, "basic_bloc_count": 2}  # ...
-
-fixup_initializer = ResBlock2D.get_fixup_initializer(total_depth)
-block = ResBlock2D(kernel_initializer=fixup_initializer, **other_args)
-
-```
-
-![Fixup initialization](https://i.stack.imgur.com/T67F3.png)
-
-    @article{zhang2019fixup,
-      Title={Fixup Initialization: Residual Learning Without Normalization},
-      Author={Zhang, Hongyi and Dauphin, Yann N and Ma, Tengyu},
-      Journal={arXiv preprint arXiv:1901.09321},
-      Year={2019}
-    }
-    
-Authors shared their [article on Arxiv](https://arxiv.org/abs/1901.09321)
-
 ## SpatialTransformer
 Original paper :
 
