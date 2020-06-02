@@ -1,7 +1,7 @@
 import tensorflow as tf
-from tensorflow.python.keras.layers import Conv2DTranspose, UpSampling1D, InputSpec
+from tensorflow.python.keras.layers import Conv2DTranspose, InputSpec
 from tensorflow.python.keras import activations, initializers, regularizers, constraints
-from tensorflow.python.keras.utils import conv_utils
+from typing import Union, List, Tuple, Optional, Any
 
 
 class Conv1DTranspose(Conv2DTranspose):
@@ -95,12 +95,12 @@ class Conv1DTranspose(Conv2DTranspose):
         pass
 
 
-def extract_singleton(value):
+def extract_singleton(value: Optional[Union[Any, List, Tuple]]):
     if not (isinstance(value, list) or isinstance(value, tuple)):
         return value
 
     if len(value) != 1:
-        raise ValueError("Value is not a singleton : length = {}".len(value))
+        raise ValueError("Value is not a singleton : length = {}".format(value))
 
     return value[0]
 

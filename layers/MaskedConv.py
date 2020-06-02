@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tensorflow_core.python.keras.layers.convolutional import Conv
+from tensorflow.python.keras.layers.convolutional import Conv
 import numpy as np
 from typing import List
 
@@ -451,7 +451,7 @@ def main():
     x = tf.ones([1, 5, 9, 9, 1])
     y = layer(x)
 
-    # print(tf.squeeze(y))
+    print(tf.squeeze(y))
     print(tf.squeeze(layer.kernel_mask))
 
 

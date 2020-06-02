@@ -4,7 +4,7 @@ from tensorflow.python.keras.layers import Layer, InputSpec
 from tensorflow.python.keras.utils import conv_utils
 from tensorflow.python.ops import nn_ops
 import numpy as np
-from typing import Union, List, Tuple, Optional
+from typing import Union, Tuple, Optional
 
 from CustomKerasLayers.layers.MaskedConv import get_kernel_mask
 
