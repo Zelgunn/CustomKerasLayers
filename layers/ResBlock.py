@@ -5,14 +5,13 @@ from tensorflow.python.keras.layers import Conv2DTranspose, Conv3DTranspose
 from tensorflow.python.keras.utils import conv_utils
 from tensorflow.python.keras.initializers import Constant, VarianceScaling
 from tensorflow.python.keras import activations, initializers, regularizers, constraints
-import numpy as np
 from typing import Tuple, List, Union, AnyStr, Callable, Dict, Optional
 
 from CustomKerasLayers.utils import to_list
 from CustomKerasLayers import Conv1DTranspose
 
 
-# region Residual helpers
+# region Residual scalars (Multiplier/Bias)
 class ResidualMultiplier(Layer):
     def __init__(self, initial_value: float, **kwargs):
         super(ResidualMultiplier, self).__init__(**kwargs)
@@ -60,7 +59,6 @@ class ResBasicBlockND(Layer):
     def __init__(self,
                  rank: int,
                  filters: int,
-                 model_depth: int,
                  depth: int,
                  kernel_size: Union[int, Tuple, List],
                  strides: Union[int, Tuple, List],
@@ -75,15 +73,18 @@ class ResBasicBlockND(Layer):
                  seed: Optional[int],
                  **kwargs):
 
-        assert rank in [1, 2, 3]
-        assert depth > 0
-        assert model_depth > 0
+        # region Check parameters
+        if rank not in (1, 2, 3):
+            raise ValueError("Rank must either be 1, 2 or 3. Received {}.".format(rank))
+
+        if depth <= 0:
+            raise ValueError("Depth must be strictly positive. Received {}.".format(depth))
+        # endregion
 
         super(ResBasicBlockND, self).__init__(**kwargs)
         self.rank = rank
         self.filters = filters
         self.depth = depth
-        self.model_depth = model_depth
         self.seed = seed
 
         self.kernel_size = conv_utils.normalize_tuple(kernel_size, rank, "kernel_size")
@@ -103,7 +104,6 @@ class ResBasicBlockND(Layer):
         self.conv_layers: List[Layer] = []
         self.projection_layer: Optional[Layer] = None
         self.residual_multiplier = None
-        self.residual_bias = None
 
         self.input_spec = InputSpec(ndim=self.rank + 2)
         self.init_layers()
@@ -130,9 +130,7 @@ class ResBasicBlockND(Layer):
                                          bias_constraint=self.bias_constraint)
             self.conv_layers.append(conv_layer)
 
-        # noinspection PyUnresolvedReferences
-        self.residual_multiplier = ResidualMultiplier(initial_value=1.0 / (np.sqrt(self.model_depth)))
-        self.residual_bias = ResidualBias()
+        self.residual_multiplier = ResidualMultiplier(initial_value=0.0)
 
     def build(self, input_shape):
         if self.use_projection(input_shape):
@@ -159,19 +157,17 @@ class ResBasicBlockND(Layer):
 
     def call(self, inputs, **kwargs):
         outputs = inputs
+
         for i in range(self.depth):
             outputs = activations.relu(outputs)
             outputs = self.conv_layers[i](outputs)
+
         outputs = self.residual_multiplier(outputs)
 
         if self.projection_layer is not None:
             inputs = self.projection_layer(inputs)
 
         outputs = inputs + outputs
-        outputs = self.residual_bias(outputs)
-
-        if self.activation is not None:
-            outputs = self.activation(outputs)
 
         return outputs
 
@@ -225,7 +221,6 @@ class ResBasicBlockND(Layer):
                 "data_format": self.data_format,
                 "dilation_rate": self.dilation_rate,
                 "activation": activations.serialize(self.activation),
-                "model_depth": self.model_depth,
                 "kernel_regularizer": regularizers.serialize(self.kernel_regularizer),
                 "bias_regularizer": regularizers.serialize(self.bias_regularizer),
                 "activity_regularizer": regularizers.serialize(self.activity_regularizer),
@@ -242,7 +237,8 @@ class ResBasicBlockND(Layer):
 
 # region ResBasicBlock - 1D/2D/3D
 class ResBasicBlock1D(ResBasicBlockND):
-    def __init__(self, filters,
+    def __init__(self,
+                 filters,
                  depth=2,
                  kernel_size=3,
                  strides=1,
@@ -259,6 +255,7 @@ class ResBasicBlock1D(ResBasicBlockND):
                  activity_regularizer=None,
                  kernel_constraint=None,
                  bias_constraint=None,
+                 seed=None,
                  **kwargs):
         super(ResBasicBlock1D, self).__init__(rank=1,
                                               filters=filters, depth=depth, kernel_size=kernel_size,
@@ -270,6 +267,7 @@ class ResBasicBlock1D(ResBasicBlockND):
                                               kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
                                               activity_regularizer=activity_regularizer,
                                               kernel_constraint=kernel_constraint, bias_constraint=bias_constraint,
+                                              seed=seed,
                                               **kwargs)
 
     def get_config(self):
@@ -296,6 +294,7 @@ class ResBasicBlock2D(ResBasicBlockND):
                  activity_regularizer=None,
                  kernel_constraint=None,
                  bias_constraint=None,
+                 seed=None,
                  **kwargs):
         super(ResBasicBlock2D, self).__init__(rank=2,
                                               filters=filters, depth=depth, kernel_size=kernel_size,
@@ -307,6 +306,7 @@ class ResBasicBlock2D(ResBasicBlockND):
                                               kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
                                               activity_regularizer=activity_regularizer,
                                               kernel_constraint=kernel_constraint, bias_constraint=bias_constraint,
+                                              seed=seed,
                                               **kwargs)
 
     def get_config(self):
@@ -333,6 +333,7 @@ class ResBasicBlock3D(ResBasicBlockND):
                  activity_regularizer=None,
                  kernel_constraint=None,
                  bias_constraint=None,
+                 seed=None,
                  **kwargs):
         super(ResBasicBlock3D, self).__init__(rank=3,
                                               filters=filters, depth=depth, kernel_size=kernel_size,
@@ -344,6 +345,7 @@ class ResBasicBlock3D(ResBasicBlockND):
                                               kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
                                               activity_regularizer=activity_regularizer,
                                               kernel_constraint=kernel_constraint, bias_constraint=bias_constraint,
+                                              seed=seed,
                                               **kwargs)
 
     def get_config(self):
@@ -384,7 +386,6 @@ class ResBasicBlockNDTranspose(ResBasicBlockND):
 class ResBasicBlock1DTranspose(ResBasicBlockNDTranspose):
     def __init__(self,
                  filters: int,
-                 model_depth: int,
                  depth=2,
                  kernel_size=3,
                  strides=1,
@@ -397,8 +398,7 @@ class ResBasicBlock1DTranspose(ResBasicBlockNDTranspose):
                  bias_constraint=None,
                  seed=None,
                  **kwargs):
-        super(ResBasicBlock1DTranspose, self).__init__(rank=1, model_depth=model_depth,
-                                                       filters=filters, depth=depth, kernel_size=kernel_size,
+        super(ResBasicBlock1DTranspose, self).__init__(rank=1, filters=filters, depth=depth, kernel_size=kernel_size,
                                                        strides=strides, data_format=data_format,
                                                        activation=activation,
                                                        kernel_regularizer=kernel_regularizer,
@@ -420,7 +420,6 @@ class ResBasicBlock1DTranspose(ResBasicBlockNDTranspose):
 class ResBasicBlock2DTranspose(ResBasicBlockNDTranspose):
     def __init__(self,
                  filters: int,
-                 model_depth: int,
                  depth=2,
                  kernel_size=(3, 3),
                  strides=(1, 1),
@@ -433,8 +432,7 @@ class ResBasicBlock2DTranspose(ResBasicBlockNDTranspose):
                  bias_constraint=None,
                  seed=None,
                  **kwargs):
-        super(ResBasicBlock2DTranspose, self).__init__(rank=2, model_depth=model_depth,
-                                                       filters=filters, depth=depth, kernel_size=kernel_size,
+        super(ResBasicBlock2DTranspose, self).__init__(rank=2, filters=filters, depth=depth, kernel_size=kernel_size,
                                                        strides=strides, data_format=data_format,
                                                        activation=activation,
                                                        kernel_regularizer=kernel_regularizer,
@@ -455,7 +453,6 @@ class ResBasicBlock2DTranspose(ResBasicBlockNDTranspose):
 class ResBasicBlock3DTranspose(ResBasicBlockNDTranspose):
     def __init__(self,
                  filters: int,
-                 model_depth: int,
                  depth=2,
                  kernel_size=(3, 3, 3),
                  strides=(1, 1, 1),
@@ -468,8 +465,7 @@ class ResBasicBlock3DTranspose(ResBasicBlockNDTranspose):
                  bias_constraint=None,
                  seed=None,
                  **kwargs):
-        super(ResBasicBlock3DTranspose, self).__init__(rank=3, model_depth=model_depth,
-                                                       filters=filters, depth=depth, kernel_size=kernel_size,
+        super(ResBasicBlock3DTranspose, self).__init__(rank=3, filters=filters, depth=depth, kernel_size=kernel_size,
                                                        strides=strides, data_format=data_format,
                                                        activation=activation,
                                                        kernel_regularizer=kernel_regularizer,
@@ -496,7 +492,6 @@ class ResBlockND(Layer):
     def __init__(self,
                  rank: int,
                  filters: int,
-                 model_depth: int,
                  basic_block_count=1,
                  basic_block_depth=2,
                  kernel_size: Union[int, Tuple, List] = 3,
@@ -529,7 +524,6 @@ class ResBlockND(Layer):
         self.dilation_rate = conv_utils.normalize_tuple(dilation_rate, rank, "dilation_rate")
         self.activation = activations.get(activation)
 
-        self.model_depth = model_depth
         self.projection_kernel_initializer = initializers.get(projection_kernel_initializer)
         self.kernel_regularizer = regularizers.get(kernel_regularizer)
         self.bias_regularizer = regularizers.get(bias_regularizer)
@@ -553,7 +547,6 @@ class ResBlockND(Layer):
                                           data_format=self.data_format,
                                           dilation_rate=self.dilation_rate,
                                           activation=self.activation,
-                                          model_depth=self.model_depth,
                                           kernel_regularizer=self.kernel_regularizer,
                                           bias_regularizer=self.bias_regularizer,
                                           activity_regularizer=self.activity_regularizer,
@@ -622,7 +615,6 @@ class ResBlockND(Layer):
                 "data_format": self.data_format,
                 "dilation_rate": self.dilation_rate,
                 "activation": activation,
-                "model_depth": self.model_depth,
                 "kernel_regularizer": regularizers.serialize(self.kernel_regularizer),
                 "bias_regularizer": regularizers.serialize(self.bias_regularizer),
                 "activity_regularizer": regularizers.serialize(self.activity_regularizer),
@@ -639,7 +631,6 @@ class ResBlockND(Layer):
 class ResBlock1D(ResBlockND):
     def __init__(self,
                  filters,
-                 model_depth: int,
                  basic_block_count=1,
                  basic_block_depth=2,
                  kernel_size=3,
@@ -654,8 +645,7 @@ class ResBlock1D(ResBlockND):
                  bias_constraint=None,
                  seed: Optional[int] = None,
                  **kwargs):
-        super(ResBlock1D, self).__init__(rank=1, model_depth=model_depth,
-                                         filters=filters, basic_block_count=basic_block_count,
+        super(ResBlock1D, self).__init__(rank=1, filters=filters, basic_block_count=basic_block_count,
                                          basic_block_depth=basic_block_depth, kernel_size=kernel_size,
                                          strides=strides, data_format=data_format,
                                          dilation_rate=dilation_rate, activation=activation,
@@ -674,7 +664,6 @@ class ResBlock1D(ResBlockND):
 class ResBlock2D(ResBlockND):
     def __init__(self,
                  filters,
-                 model_depth: int,
                  basic_block_count=1,
                  basic_block_depth=2,
                  kernel_size=(3, 3),
@@ -689,8 +678,7 @@ class ResBlock2D(ResBlockND):
                  bias_constraint=None,
                  seed: Optional[int] = None,
                  **kwargs):
-        super(ResBlock2D, self).__init__(rank=2, model_depth=model_depth,
-                                         filters=filters, basic_block_count=basic_block_count,
+        super(ResBlock2D, self).__init__(rank=2, filters=filters, basic_block_count=basic_block_count,
                                          basic_block_depth=basic_block_depth, kernel_size=kernel_size,
                                          strides=strides, data_format=data_format,
                                          dilation_rate=dilation_rate, activation=activation,
@@ -709,7 +697,6 @@ class ResBlock2D(ResBlockND):
 class ResBlock3D(ResBlockND):
     def __init__(self,
                  filters,
-                 model_depth: int,
                  basic_block_count=1,
                  basic_block_depth=2,
                  kernel_size=(3, 3, 3),
@@ -724,8 +711,7 @@ class ResBlock3D(ResBlockND):
                  bias_constraint=None,
                  seed: Optional[int] = None,
                  **kwargs):
-        super(ResBlock3D, self).__init__(rank=3, model_depth=model_depth,
-                                         filters=filters, basic_block_count=basic_block_count,
+        super(ResBlock3D, self).__init__(rank=3, filters=filters, basic_block_count=basic_block_count,
                                          basic_block_depth=basic_block_depth, kernel_size=kernel_size,
                                          strides=strides, data_format=data_format,
                                          dilation_rate=dilation_rate, activation=activation,
@@ -753,7 +739,6 @@ class ResBlockNDTranspose(ResBlockND):
                                                    data_format=self.data_format,
                                                    dilation_rate=self.dilation_rate,
                                                    activation=self.activation,
-                                                   model_depth=self.model_depth,
                                                    kernel_regularizer=self.kernel_regularizer,
                                                    bias_regularizer=self.bias_regularizer,
                                                    activity_regularizer=self.activity_regularizer,
@@ -785,7 +770,6 @@ class ResBlockNDTranspose(ResBlockND):
 class ResBlock1DTranspose(ResBlockNDTranspose):
     def __init__(self,
                  filters,
-                 model_depth: int,
                  basic_block_count=1,
                  basic_block_depth=2,
                  kernel_size=3,
@@ -800,8 +784,7 @@ class ResBlock1DTranspose(ResBlockNDTranspose):
                  bias_constraint=None,
                  seed: Optional[int] = None,
                  **kwargs):
-        super(ResBlock1DTranspose, self).__init__(rank=1, model_depth=model_depth,
-                                                  filters=filters, basic_block_count=basic_block_count,
+        super(ResBlock1DTranspose, self).__init__(rank=1, filters=filters, basic_block_count=basic_block_count,
                                                   basic_block_depth=basic_block_depth, kernel_size=kernel_size,
                                                   strides=strides, data_format=data_format,
                                                   dilation_rate=dilation_rate, activation=activation,
@@ -821,7 +804,6 @@ class ResBlock1DTranspose(ResBlockNDTranspose):
 class ResBlock2DTranspose(ResBlockNDTranspose):
     def __init__(self,
                  filters,
-                 model_depth: int,
                  basic_block_count=1,
                  basic_block_depth=2,
                  kernel_size=(3, 3),
@@ -836,8 +818,7 @@ class ResBlock2DTranspose(ResBlockNDTranspose):
                  bias_constraint=None,
                  seed: Optional[int] = None,
                  **kwargs):
-        super(ResBlock2DTranspose, self).__init__(rank=2, model_depth=model_depth,
-                                                  filters=filters, basic_block_count=basic_block_count,
+        super(ResBlock2DTranspose, self).__init__(rank=2, filters=filters, basic_block_count=basic_block_count,
                                                   basic_block_depth=basic_block_depth, kernel_size=kernel_size,
                                                   strides=strides, data_format=data_format,
                                                   dilation_rate=dilation_rate, activation=activation,
@@ -857,7 +838,6 @@ class ResBlock2DTranspose(ResBlockNDTranspose):
 class ResBlock3DTranspose(ResBlockNDTranspose):
     def __init__(self,
                  filters,
-                 model_depth: int,
                  basic_block_count=1,
                  basic_block_depth=2,
                  kernel_size=(3, 3, 3),
@@ -872,8 +852,7 @@ class ResBlock3DTranspose(ResBlockNDTranspose):
                  bias_constraint=None,
                  seed: Optional[int] = None,
                  **kwargs):
-        super(ResBlock3DTranspose, self).__init__(rank=3, model_depth=model_depth,
-                                                  filters=filters, basic_block_count=basic_block_count,
+        super(ResBlock3DTranspose, self).__init__(rank=3, filters=filters, basic_block_count=basic_block_count,
                                                   basic_block_depth=basic_block_depth, kernel_size=kernel_size,
                                                   strides=strides, data_format=data_format,
                                                   dilation_rate=dilation_rate, activation=activation,

@@ -11,7 +11,7 @@ from time import time
 from CustomKerasLayers import ResBlock2D
 
 
-def evaluate_on_cifar10():
+def main():
     total_depth = 36
     n_blocks = 3
     basic_block_count = total_depth // n_blocks
@@ -22,8 +22,7 @@ def evaluate_on_cifar10():
 
     for k in range(n_blocks):
         strides = 2 if k < (n_blocks - 1) else 1
-        layer = ResBlock2D(filters=16 * (2 ** k), basic_block_count=basic_block_count, strides=strides,
-                           model_depth=n_blocks)(layer)
+        layer = ResBlock2D(filters=16 * (2 ** k), basic_block_count=basic_block_count, strides=strides)(layer)
 
         if k == (n_blocks - 1):
             layer = AveragePooling2D(pool_size=8)(layer)
@@ -61,4 +60,4 @@ def evaluate_on_cifar10():
 
 
 if __name__ == "__main__":
-    evaluate_on_cifar10()
+    main()
