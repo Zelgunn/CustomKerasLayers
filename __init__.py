@@ -30,11 +30,11 @@ from CustomKerasLayers.layers.MaskedConv import MaskedConv1D, MaskedConv2D, Mask
 from CustomKerasLayers.layers.MaskedConvStack import MaskedConv2DStack, MaskedConv3DStack
 
 # noinspection PyUnresolvedReferences
-from CustomKerasLayers.utilitary_layers.ExpandDims import ExpandDims
+from CustomKerasLayers.utility_layers.ExpandDims import ExpandDims
 # noinspection PyUnresolvedReferences
-from CustomKerasLayers.utilitary_layers.TileLayer import TileLayer
+from CustomKerasLayers.utility_layers.TileLayer import TileLayer
 # noinspection PyUnresolvedReferences
-from CustomKerasLayers.utilitary_layers.Unfold import Unfold
+from CustomKerasLayers.utility_layers.Unfold import Unfold
 
 # noinspection PyUnresolvedReferences
 from CustomKerasLayers.models.ConvAM import ConvAM
