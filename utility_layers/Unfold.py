@@ -41,8 +41,9 @@ class Unfold(Layer):
                 raise ValueError("Inputs' rank is invalid. Expected 1, 2 or 3. Found {}.".format(input_shape.rank))
             self.rank = input_shape.rank - 2
 
-        input_channel = input_shape[-1]
-        self.input_spec = InputSpec(ndim=self.rank + 2, axes={-1: input_channel})
+        self.input_spec = InputSpec(shape=input_shape)
+        # input_channel = input_shape[-1]
+        # self.input_spec = InputSpec(ndim=self.rank + 2, axes={-1: input_channel})
 
     def call(self, inputs, **kwargs):
         # region Getting parameters for extraction
@@ -68,6 +69,9 @@ class Unfold(Layer):
         else:
             raise AttributeError("Invalid rank : self.rank is {}.".format(self.rank))
         # endregion
+
+        if len(outputs.shape) != len(inputs.shape):
+            raise ValueError(outputs.shape, inputs.shape, self.name)
 
         return outputs
 

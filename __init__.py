@@ -2,15 +2,27 @@
 from CustomKerasLayers.layers.Conv1DTranspose import Conv1DTranspose
 
 # noinspection PyUnresolvedReferences
+from CustomKerasLayers.layers.ResBlock import ResBasicBlock1D, ResBasicBlock2D, ResBasicBlock3D
+# noinspection PyUnresolvedReferences
+from CustomKerasLayers.layers.ResBlock import ResBasicBlock2DTranspose, ResBasicBlock3DTranspose
+# noinspection PyUnresolvedReferences
 from CustomKerasLayers.layers.ResBlock import ResBlockND, ResBlockNDTranspose
 # noinspection PyUnresolvedReferences
 from CustomKerasLayers.layers.ResBlock import ResBlock1D, ResBlock2D, ResBlock3D
 # noinspection PyUnresolvedReferences
 from CustomKerasLayers.layers.ResBlock import ResBlock1DTranspose, ResBlock2DTranspose, ResBlock3DTranspose
+
 # noinspection PyUnresolvedReferences
-from CustomKerasLayers.layers.ResBlock import ResBasicBlock1D, ResBasicBlock2D, ResBasicBlock3D
+from CustomKerasLayers.layers.StandAloneSelfAttention import StandAloneSelfAttention
 # noinspection PyUnresolvedReferences
-from CustomKerasLayers.layers.ResBlock import ResBasicBlock2DTranspose, ResBasicBlock3DTranspose
+from CustomKerasLayers.layers.StandAloneSelfAttention import StandAloneSelfAttention1D, StandAloneSelfAttention2D
+# noinspection PyUnresolvedReferences
+from CustomKerasLayers.layers.StandAloneSelfAttention import StandAloneSelfAttention3D
+
+# noinspection PyUnresolvedReferences
+from CustomKerasLayers.layers.ResSASABlock import ResSASABasicBlock
+# noinspection PyUnresolvedReferences
+from CustomKerasLayers.layers.ResSASABlock import ResSASABlock
 
 # noinspection PyUnresolvedReferences
 from CustomKerasLayers.layers.DenseBlock import DenseBlock1D, DenseBlock2D, DenseBlock3D

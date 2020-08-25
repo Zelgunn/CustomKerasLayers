@@ -9,43 +9,42 @@ import numpy as np
 import os
 from time import time
 
-from CustomKerasLayers.layers.StandAloneSelfAttention import StandAloneSelfAttention
+from CustomKerasLayers.layers.ResSASABlock import ResSASABlock
+from CustomKerasLayers.layers.ResBlock import ResBlock2D
 
 
 def main():
-    block_count = 3
-    layers_per_block = 2
+    block_count = 4
+    basic_block_count = 8
     input_shape = (32, 32, 3)
 
     layers_params = {
         "rank": 2,
         "head_size": 8,
         "head_count": 8,
+        "basic_block_count": basic_block_count,
         "kernel_size": 3,
         "strides": 1,
         "dilation_rate": 1,
         "activation": "relu",
-        "use_bias": True,
-        "kernel_initializer": VarianceScaling(seed=42),
-        "bias_initializer": "zeros",
         "kernel_regularizer": None,
         "bias_regularizer": None,
         "activity_regularizer": None,
         "kernel_constraint": None,
         "bias_constraint": None,
-        "seed": 42,
-        "input_shape": input_shape
+        "seed": 42
     }
 
-    layers = []
-    for _ in range(block_count):
-        for _ in range(layers_per_block):
-            layer = StandAloneSelfAttention(**layers_params)
-            layers.append(layer)
-            if "input_shape" in layers_params:
-                layers_params.pop("input_shape")
+    layers = [
+        ResBlock2D(filters=16, basic_block_count=basic_block_count, kernel_size=7, seed=42, input_shape=input_shape),
+        MaxPooling2D(4)
+    ]
+    for i in range(1, block_count):
+        layer = ResSASABlock(**layers_params)
+        layers.append(layer)
+        layers_params["head_size"] *= 2
+        layers.append(MaxPooling2D(2))
 
-        layers.append(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
     layers.append(Flatten())
     layers.append(Dense(units=10, activation="softmax", kernel_initializer=VarianceScaling(seed=42)))
 
@@ -68,9 +67,9 @@ def main():
     generator.fit(x_train, seed=0)
     # endregion
 
-    log_dir = "../logs/tests/stand_alone_self_attention_cifar10/{}".format(int(time()))
+    log_dir = "../../logs/tests/stand_alone_self_attention_cifar10/{}".format(int(time()))
     log_dir = os.path.normpath(log_dir)
-    tensorboard = TensorBoard(log_dir=log_dir)
+    tensorboard = TensorBoard(log_dir=log_dir, profile_batch="500,520")
 
     model.fit(generator.flow(x_train, y_train, batch_size=64),
               steps_per_epoch=100, epochs=300, validation_data=(x_test, y_test),

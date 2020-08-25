@@ -1,14 +1,15 @@
 import tensorflow as tf
 from tensorflow.python.keras.layers import InputSpec, Activation, Layer
+from tensorflow.python.keras.layers.convolutional import Conv
 from tensorflow.python.keras.layers import Conv1D, Conv2D, Conv3D
 from tensorflow.python.keras.layers import Conv2DTranspose, Conv3DTranspose
 from tensorflow.python.keras.utils import conv_utils
 from tensorflow.python.keras.initializers import Constant, VarianceScaling
 from tensorflow.python.keras import activations, initializers, regularizers, constraints
-from typing import Tuple, List, Union, AnyStr, Callable, Dict, Optional
+from typing import Tuple, List, Union, AnyStr, Callable, Dict, Optional, Type
 
 from CustomKerasLayers.utils import to_list
-from CustomKerasLayers import Conv1DTranspose
+from CustomKerasLayers.layers.Conv1DTranspose import Conv1DTranspose
 
 
 # region Residual scalars (Multiplier/Bias)
@@ -108,26 +109,31 @@ class ResBasicBlockND(Layer):
         self.input_spec = InputSpec(ndim=self.rank + 2)
         self.init_layers()
 
-    def get_conv_layer_type(self):
-        return Conv1D if self.rank is 1 else Conv2D if self.rank is 2 else Conv3D
+    def get_conv_layer_type(self) -> Type[Conv]:
+        conv_layer_types = [None, Conv1D, Conv2D, Conv3D]
+        return conv_layer_types[self.rank]
+
+    def init_layer(self, use_strides: bool, projection_layer: bool) -> Conv:
+        conv_layer_type = self.get_conv_layer_type()
+        strides = self.strides if (use_strides or projection_layer) else 1
+        kernel_size = self.projection_kernel_size if projection_layer else self.kernel_size
+        return conv_layer_type(filters=self.filters,
+                               kernel_size=kernel_size,
+                               strides=strides,
+                               padding="same",
+                               data_format=self.data_format,
+                               dilation_rate=self.dilation_rate,
+                               use_bias=not projection_layer,
+                               kernel_initializer=self.kernel_initializer,
+                               bias_initializer="zeros",
+                               kernel_regularizer=self.kernel_regularizer,
+                               activity_regularizer=self.activity_regularizer,
+                               kernel_constraint=self.kernel_constraint,
+                               bias_constraint=self.bias_constraint)
 
     def init_layers(self):
-        conv_layer_type = self.get_conv_layer_type()
         for i in range(self.depth):
-            strides = self.strides if (i == 0) else 1
-            conv_layer = conv_layer_type(filters=self.filters,
-                                         kernel_size=self.kernel_size,
-                                         strides=strides,
-                                         padding="same",
-                                         data_format=self.data_format,
-                                         dilation_rate=self.dilation_rate,
-                                         use_bias=True,
-                                         kernel_initializer=self.kernel_initializer,
-                                         bias_initializer="zeros",
-                                         kernel_regularizer=self.kernel_regularizer,
-                                         activity_regularizer=self.activity_regularizer,
-                                         kernel_constraint=self.kernel_constraint,
-                                         bias_constraint=self.bias_constraint)
+            conv_layer = self.init_layer(i == 0, projection_layer=False)
             self.conv_layers.append(conv_layer)
 
         self.residual_multiplier = ResidualMultiplier(initial_value=0.0)
@@ -140,20 +146,7 @@ class ResBasicBlockND(Layer):
         super(ResBasicBlockND, self).build(input_shape)
 
     def init_projection_layer(self):
-        conv_layer_type = self.get_conv_layer_type()
-        projection_kernel_size = conv_utils.normalize_tuple(1, self.rank, "projection_kernel_size")
-        self.projection_layer = conv_layer_type(filters=self.filters,
-                                                kernel_size=projection_kernel_size,
-                                                strides=self.strides,
-                                                padding="same",
-                                                data_format=self.data_format,
-                                                dilation_rate=self.dilation_rate,
-                                                use_bias=False,
-                                                kernel_initializer=VarianceScaling(mode="fan_in", seed=self.seed),
-                                                kernel_regularizer=self.kernel_regularizer,
-                                                activity_regularizer=self.activity_regularizer,
-                                                kernel_constraint=self.kernel_constraint,
-                                                bias_constraint=self.bias_constraint)
+        self.projection_layer = self.init_layer(use_strides=True, projection_layer=True)
 
     def call(self, inputs, **kwargs):
         outputs = inputs
@@ -208,6 +201,10 @@ class ResBasicBlockND(Layer):
     @property
     def channels_first(self):
         return self.data_format == "channels_first"
+
+    @property
+    def projection_kernel_size(self):
+        return conv_utils.normalize_tuple(1, self.rank, "projection_kernel_size")
 
     def get_config(self):
         config = \
@@ -359,8 +356,8 @@ class ResBasicBlock3D(ResBasicBlockND):
 
 class ResBasicBlockNDTranspose(ResBasicBlockND):
     def get_conv_layer_type(self):
-        assert self.rank in [1, 2, 3]
-        return Conv1DTranspose if self.rank is 1 else Conv2DTranspose if self.rank is 2 else Conv3DTranspose
+        conv_layer_types = [None, Conv1DTranspose, Conv2DTranspose, Conv3DTranspose]
+        return conv_layer_types[self.rank]
 
     # noinspection DuplicatedCode
     def compute_output_shape(self, input_shape):
