@@ -226,7 +226,6 @@ class StandAloneSelfAttention(Layer):
             "bias_regularizer": self.bias_regularizer,
             "kernel_constraint": self.kernel_constraint,
             "bias_constraint": self.bias_constraint,
-            "seed": self.seed,
         }
         return config
 

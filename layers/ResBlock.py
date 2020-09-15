@@ -65,7 +65,6 @@ class ResBasicBlockND(Layer):
                  strides: Union[int, Tuple, List],
                  data_format: Optional[AnyStr],
                  dilation_rate: Union[int, Tuple, List],
-                 activation: Optional[Union[AnyStr, Callable]],
                  kernel_regularizer: Optional[Union[Dict, AnyStr, Callable]],
                  bias_regularizer: Optional[Union[Dict, AnyStr, Callable]],
                  activity_regularizer: Optional[Union[Dict, AnyStr, Callable]],
@@ -93,7 +92,6 @@ class ResBasicBlockND(Layer):
 
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.dilation_rate = conv_utils.normalize_tuple(dilation_rate, rank, "dilation_rate")
-        self.activation = activations.get(activation)
 
         self.kernel_initializer = VarianceScaling(mode="fan_in", seed=seed)
         self.kernel_regularizer = regularizers.get(kernel_regularizer)
@@ -217,7 +215,6 @@ class ResBasicBlockND(Layer):
                 "padding": "same",
                 "data_format": self.data_format,
                 "dilation_rate": self.dilation_rate,
-                "activation": activations.serialize(self.activation),
                 "kernel_regularizer": regularizers.serialize(self.kernel_regularizer),
                 "bias_regularizer": regularizers.serialize(self.bias_regularizer),
                 "activity_regularizer": regularizers.serialize(self.activity_regularizer),
@@ -241,7 +238,7 @@ class ResBasicBlock1D(ResBasicBlockND):
                  strides=1,
                  data_format=None,
                  dilation_rate=1,
-                 activation="relu",
+                 activation="linear",
                  use_residual_bias=True,
                  use_conv_bias=False,
                  use_batch_norm=True,
@@ -280,7 +277,7 @@ class ResBasicBlock2D(ResBasicBlockND):
                  strides=(1, 1),
                  data_format=None,
                  dilation_rate=1,
-                 activation="relu",
+                 activation="linear",
                  use_residual_bias=True,
                  use_conv_bias=False,
                  use_batch_norm=True,
@@ -319,7 +316,7 @@ class ResBasicBlock3D(ResBasicBlockND):
                  strides=(1, 1, 1),
                  data_format=None,
                  dilation_rate=1,
-                 activation="relu",
+                 activation="linear",
                  use_residual_bias=True,
                  use_conv_bias=False,
                  use_batch_norm=True,
@@ -387,7 +384,7 @@ class ResBasicBlock1DTranspose(ResBasicBlockNDTranspose):
                  kernel_size=3,
                  strides=1,
                  data_format=None,
-                 activation="relu",
+                 activation="linear",
                  kernel_regularizer=None,
                  bias_regularizer=None,
                  activity_regularizer=None,
@@ -421,7 +418,7 @@ class ResBasicBlock2DTranspose(ResBasicBlockNDTranspose):
                  kernel_size=(3, 3),
                  strides=(1, 1),
                  data_format=None,
-                 activation="relu",
+                 activation="linear",
                  kernel_regularizer=None,
                  bias_regularizer=None,
                  activity_regularizer=None,
@@ -454,7 +451,7 @@ class ResBasicBlock3DTranspose(ResBasicBlockNDTranspose):
                  kernel_size=(3, 3, 3),
                  strides=(1, 1, 1),
                  data_format=None,
-                 activation="relu",
+                 activation="linear",
                  kernel_regularizer=None,
                  bias_regularizer=None,
                  activity_regularizer=None,
@@ -490,12 +487,12 @@ class ResBlockND(Layer):
                  rank: int,
                  filters: int,
                  basic_block_count=1,
-                 basic_block_depth=2,
+                 basic_block_depth=1,
                  kernel_size: Union[int, Tuple, List] = 3,
                  strides: Union[int, Tuple, List] = 1,
                  data_format: AnyStr = None,
                  dilation_rate: Union[int, Tuple, List] = 1,
-                 activation: Union[None, AnyStr, Callable] = "relu",
+                 activation: Union[None, AnyStr, Callable] = "linear",
                  projection_kernel_initializer: Union[Dict, AnyStr, Callable] = None,
                  kernel_regularizer: Union[Dict, AnyStr, Callable] = None,
                  bias_regularizer: Union[Dict, AnyStr, Callable] = None,
@@ -543,7 +540,6 @@ class ResBlockND(Layer):
                                           strides=strides,
                                           data_format=self.data_format,
                                           dilation_rate=self.dilation_rate,
-                                          activation=self.activation,
                                           kernel_regularizer=self.kernel_regularizer,
                                           bias_regularizer=self.bias_regularizer,
                                           activity_regularizer=self.activity_regularizer,
@@ -557,12 +553,11 @@ class ResBlockND(Layer):
         super(ResBlockND, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
-        layer = inputs
-        # tf.print(" - {} : ".format(self.name), tf.reduce_mean(layer), " - ", tf.math.reduce_variance(layer))
-        # with tf.name_scope("residual_block"):
+        outputs = inputs
         for basic_block in self.basic_blocks:
-            layer = basic_block(layer)
-        return layer
+            outputs = basic_block(outputs)
+        outputs = self.activation(outputs)
+        return outputs
 
     # noinspection DuplicatedCode
     def compute_output_shape(self, input_shape):
@@ -629,12 +624,12 @@ class ResBlock1D(ResBlockND):
     def __init__(self,
                  filters,
                  basic_block_count=1,
-                 basic_block_depth=2,
+                 basic_block_depth=1,
                  kernel_size=3,
                  strides=1,
                  data_format=None,
                  dilation_rate=1,
-                 activation="relu",
+                 activation="linear",
                  kernel_regularizer=None,
                  bias_regularizer=None,
                  activity_regularizer=None,
@@ -662,12 +657,12 @@ class ResBlock2D(ResBlockND):
     def __init__(self,
                  filters,
                  basic_block_count=1,
-                 basic_block_depth=2,
+                 basic_block_depth=1,
                  kernel_size=(3, 3),
                  strides=(1, 1),
                  data_format=None,
                  dilation_rate=1,
-                 activation="relu",
+                 activation="linear",
                  kernel_regularizer=None,
                  bias_regularizer=None,
                  activity_regularizer=None,
@@ -695,12 +690,12 @@ class ResBlock3D(ResBlockND):
     def __init__(self,
                  filters,
                  basic_block_count=1,
-                 basic_block_depth=2,
+                 basic_block_depth=1,
                  kernel_size=(3, 3, 3),
                  strides=(1, 1, 1),
                  data_format=None,
                  dilation_rate=1,
-                 activation="relu",
+                 activation="linear",
                  kernel_regularizer=None,
                  bias_regularizer=None,
                  activity_regularizer=None,
@@ -768,12 +763,12 @@ class ResBlock1DTranspose(ResBlockNDTranspose):
     def __init__(self,
                  filters,
                  basic_block_count=1,
-                 basic_block_depth=2,
+                 basic_block_depth=1,
                  kernel_size=3,
                  strides=1,
                  data_format=None,
                  dilation_rate=1,
-                 activation="relu",
+                 activation="linear",
                  kernel_regularizer=None,
                  bias_regularizer=None,
                  activity_regularizer=None,
@@ -802,12 +797,12 @@ class ResBlock2DTranspose(ResBlockNDTranspose):
     def __init__(self,
                  filters,
                  basic_block_count=1,
-                 basic_block_depth=2,
+                 basic_block_depth=1,
                  kernel_size=(3, 3),
                  strides=(1, 1),
                  data_format=None,
                  dilation_rate=1,
-                 activation="relu",
+                 activation="linear",
                  kernel_regularizer=None,
                  bias_regularizer=None,
                  activity_regularizer=None,
@@ -836,12 +831,12 @@ class ResBlock3DTranspose(ResBlockNDTranspose):
     def __init__(self,
                  filters,
                  basic_block_count=1,
-                 basic_block_depth=2,
+                 basic_block_depth=1,
                  kernel_size=(3, 3, 3),
                  strides=(1, 1, 1),
                  data_format=None,
                  dilation_rate=1,
-                 activation="relu",
+                 activation="linear",
                  kernel_regularizer=None,
                  bias_regularizer=None,
                  activity_regularizer=None,
