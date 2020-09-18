@@ -1,4 +1,5 @@
-from tensorflow.python.keras import initializers, layers
+from tensorflow.python.keras import layers
+from tensorflow.python.keras.initializers.initializers_v2 import RandomNormal
 from typing import Union, Optional, Tuple, List, AnyStr, Callable, Dict, Type
 
 from CustomKerasLayers.layers.StandAloneSelfAttention import StandAloneSelfAttention
@@ -24,7 +25,7 @@ class ResSASABasicBlock(ResBasicBlockND):
         filters = head_count * head_size
         self.head_size = head_size
         self.head_count = head_count
-        self.embeddings_initializer = initializers.RandomNormal(stddev=1.0, seed=seed)
+        self.embeddings_initializer = RandomNormal(stddev=1.0, seed=seed)
 
         super(ResSASABasicBlock, self).__init__(rank=rank, filters=filters, depth=depth, kernel_size=kernel_size,
                                                 strides=strides, data_format=None, dilation_rate=dilation_rate,
@@ -60,6 +61,16 @@ class ResSASABasicBlock(ResBasicBlockND):
     def build(self, input_shape):
         super(ResSASABasicBlock, self).build(input_shape)
         self.input_spec = layers.InputSpec(shape=input_shape)
+
+    def get_config(self):
+        config = \
+            {
+                **super(ResSASABasicBlock, self).get_config(),
+                "head_size": self.head_size,
+                "head_count": self.head_count,
+            }
+
+        return config
 
 
 class ResSASABlock(ResBlockND):
@@ -118,3 +129,13 @@ class ResSASABlock(ResBlockND):
     def build(self, input_shape):
         super(ResSASABlock, self).build(input_shape)
         self.input_spec = layers.InputSpec(shape=input_shape)
+
+    def get_config(self):
+        config = \
+            {
+                **super(ResSASABlock, self).get_config(),
+                "head_size": self.head_size,
+                "head_count": self.head_count,
+            }
+
+        return config

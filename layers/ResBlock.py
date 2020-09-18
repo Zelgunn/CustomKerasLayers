@@ -4,7 +4,7 @@ from tensorflow.python.keras.layers.convolutional import Conv
 from tensorflow.python.keras.layers import Conv1D, Conv2D, Conv3D
 from tensorflow.python.keras.layers import Conv2DTranspose, Conv3DTranspose
 from tensorflow.python.keras.utils import conv_utils
-from tensorflow.python.keras.initializers import Constant, VarianceScaling
+from tensorflow.python.keras.initializers.initializers_v2 import Constant, VarianceScaling
 from tensorflow.python.keras import activations, initializers, regularizers, constraints
 from typing import Tuple, List, Union, AnyStr, Callable, Dict, Optional, Type
 
@@ -209,8 +209,8 @@ class ResBasicBlockND(Layer):
             {
                 "rank": self.rank,
                 "filters": self.filters,
-                "kernel_size": self.kernel_size,
                 "depth": self.depth,
+                "kernel_size": self.kernel_size,
                 "strides": self.strides,
                 "padding": "same",
                 "data_format": self.data_format,
@@ -504,6 +504,9 @@ class ResBlockND(Layer):
         assert rank in [1, 2, 3]
         assert basic_block_count > 0
 
+        if projection_kernel_initializer is None:
+            projection_kernel_initializer = VarianceScaling(scale=1.0, mode="fan_in", seed=seed)
+
         super(ResBlockND, self).__init__(**kwargs)
         self.rank = rank
         self.filters = filters
@@ -599,20 +602,23 @@ class ResBlockND(Layer):
             {
                 "rank": self.rank,
                 "filters": self.filters,
-                "kernel_size": self.kernel_size,
                 "basic_block_count": self.basic_block_count,
                 "basic_block_depth": self.basic_block_depth,
+                "kernel_size": self.kernel_size,
                 "strides": self.strides,
                 "padding": "same",
                 "data_format": self.data_format,
                 "dilation_rate": self.dilation_rate,
                 "activation": activation,
+                "projection_kernel_initializer": initializers.serialize(self.projection_kernel_initializer),
                 "kernel_regularizer": regularizers.serialize(self.kernel_regularizer),
                 "bias_regularizer": regularizers.serialize(self.bias_regularizer),
                 "activity_regularizer": regularizers.serialize(self.activity_regularizer),
                 "kernel_constraint": constraints.serialize(self.kernel_constraint),
-                "bias_constraint": constraints.serialize(self.bias_constraint)
+                "bias_constraint": constraints.serialize(self.bias_constraint),
+                "seed": self.seed,
             }
+
         base_config = super(ResBlockND, self).get_config()
         return {**base_config, **config}
 
