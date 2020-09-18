@@ -45,7 +45,7 @@ class StandAloneSelfAttention(Layer):
         kernel_initializer = initializers.get(kernel_initializer)
         bias_initializer = initializers.get(bias_initializer)
         if embeddings_initializer == "random_normal":
-            embeddings_initializer = initializers.RandomNormal(stddev=1.0)
+            embeddings_initializer = initializers.initializers_v2.RandomNormal(stddev=1.0)
         embeddings_initializer = initializers.get(embeddings_initializer)
         kernel_regularizer = regularizers.get(kernel_regularizer)
         bias_regularizer = regularizers.get(bias_regularizer)

@@ -1,6 +1,6 @@
 from tensorflow.python.keras.models import Sequential
 from tensorflow.python.keras.layers import MaxPooling2D, Flatten, Dense
-from tensorflow.python.keras.initializers import VarianceScaling
+from tensorflow.python.keras.initializers.initializers_v2 import VarianceScaling
 from tensorflow.python.keras.datasets import cifar10
 from tensorflow.python.keras.utils.np_utils import to_categorical
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
