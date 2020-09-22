@@ -1,5 +1,6 @@
 from tensorflow.python.keras import layers
-from tensorflow.python.keras.initializers.initializers_v2 import RandomNormal
+# noinspection PyUnresolvedReferences
+from tensorflow.python.keras.initializers import RandomNormal
 from typing import Union, Optional, Tuple, List, AnyStr, Callable, Dict, Type
 
 from CustomKerasLayers.layers.StandAloneSelfAttention import StandAloneSelfAttention

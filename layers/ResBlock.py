@@ -4,7 +4,8 @@ from tensorflow.python.keras.layers.convolutional import Conv
 from tensorflow.python.keras.layers import Conv1D, Conv2D, Conv3D
 from tensorflow.python.keras.layers import Conv2DTranspose, Conv3DTranspose
 from tensorflow.python.keras.utils import conv_utils
-from tensorflow.python.keras.initializers.initializers_v2 import Constant, VarianceScaling
+# noinspection PyUnresolvedReferences
+from tensorflow.python.keras.initializers import Constant, VarianceScaling
 from tensorflow.python.keras import activations, initializers, regularizers, constraints
 from typing import Tuple, List, Union, AnyStr, Callable, Dict, Optional, Type
 
