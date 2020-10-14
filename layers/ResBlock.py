@@ -56,6 +56,13 @@ class ResidualBias(Layer):
 
 # endregion
 
+def normalize_padding(padding: str) -> str:
+    padding = conv_utils.normalize_padding(padding)
+    if padding == "valid":
+        raise ValueError("`valid` padding is not currently supported for residual blocks.")
+    return padding
+
+
 # region Basic blocks
 class ResBasicBlockND(Layer):
     def __init__(self,
@@ -64,6 +71,7 @@ class ResBasicBlockND(Layer):
                  depth: int,
                  kernel_size: Union[int, Tuple, List],
                  strides: Union[int, Tuple, List],
+                 padding: str,
                  data_format: Optional[AnyStr],
                  dilation_rate: Union[int, Tuple, List],
                  kernel_regularizer: Optional[Union[Dict, AnyStr, Callable]],
@@ -90,6 +98,7 @@ class ResBasicBlockND(Layer):
 
         self.kernel_size = conv_utils.normalize_tuple(kernel_size, rank, "kernel_size")
         self.strides = conv_utils.normalize_tuple(strides, rank, "strides")
+        self.padding = normalize_padding(padding)
 
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.dilation_rate = conv_utils.normalize_tuple(dilation_rate, rank, "dilation_rate")
@@ -119,7 +128,7 @@ class ResBasicBlockND(Layer):
         return conv_layer_type(filters=self.filters,
                                kernel_size=kernel_size,
                                strides=strides,
-                               padding="same",
+                               padding=self.padding,
                                data_format=self.data_format,
                                dilation_rate=self.dilation_rate,
                                use_bias=not projection_layer,
@@ -179,7 +188,7 @@ class ResBasicBlockND(Layer):
                 new_dim = conv_utils.conv_output_length(
                     space[i],
                     self.kernel_size[i],
-                    padding="same",
+                    padding=self.padding,
                     stride=self.strides[i],
                     dilation=self.dilation_rate[i])
                 new_space.append(new_dim)
@@ -213,7 +222,7 @@ class ResBasicBlockND(Layer):
                 "depth": self.depth,
                 "kernel_size": self.kernel_size,
                 "strides": self.strides,
-                "padding": "same",
+                "padding": self.padding,
                 "data_format": self.data_format,
                 "dilation_rate": self.dilation_rate,
                 "kernel_regularizer": regularizers.serialize(self.kernel_regularizer),
@@ -237,14 +246,10 @@ class ResBasicBlock1D(ResBasicBlockND):
                  depth=2,
                  kernel_size=3,
                  strides=1,
+                 padding="same",
                  data_format=None,
                  dilation_rate=1,
                  activation="linear",
-                 use_residual_bias=True,
-                 use_conv_bias=False,
-                 use_batch_norm=True,
-                 kernel_initializer="he_normal",
-                 bias_initializer="zeros",
                  kernel_regularizer=None,
                  bias_regularizer=None,
                  activity_regularizer=None,
@@ -254,11 +259,8 @@ class ResBasicBlock1D(ResBasicBlockND):
                  **kwargs):
         super(ResBasicBlock1D, self).__init__(rank=1,
                                               filters=filters, depth=depth, kernel_size=kernel_size,
-                                              strides=strides, data_format=data_format,
+                                              strides=strides, padding=padding, data_format=data_format,
                                               dilation_rate=dilation_rate, activation=activation,
-                                              use_residual_bias=use_residual_bias, use_conv_bias=use_conv_bias,
-                                              use_batch_norm=use_batch_norm,
-                                              kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
                                               kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
                                               activity_regularizer=activity_regularizer,
                                               kernel_constraint=kernel_constraint, bias_constraint=bias_constraint,
@@ -279,11 +281,6 @@ class ResBasicBlock2D(ResBasicBlockND):
                  data_format=None,
                  dilation_rate=1,
                  activation="linear",
-                 use_residual_bias=True,
-                 use_conv_bias=False,
-                 use_batch_norm=True,
-                 kernel_initializer="he_normal",
-                 bias_initializer="zeros",
                  kernel_regularizer=None,
                  bias_regularizer=None,
                  activity_regularizer=None,
@@ -295,9 +292,6 @@ class ResBasicBlock2D(ResBasicBlockND):
                                               filters=filters, depth=depth, kernel_size=kernel_size,
                                               strides=strides, data_format=data_format,
                                               dilation_rate=dilation_rate, activation=activation,
-                                              use_residual_bias=use_residual_bias, use_conv_bias=use_conv_bias,
-                                              use_batch_norm=use_batch_norm,
-                                              kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
                                               kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
                                               activity_regularizer=activity_regularizer,
                                               kernel_constraint=kernel_constraint, bias_constraint=bias_constraint,
@@ -318,11 +312,6 @@ class ResBasicBlock3D(ResBasicBlockND):
                  data_format=None,
                  dilation_rate=1,
                  activation="linear",
-                 use_residual_bias=True,
-                 use_conv_bias=False,
-                 use_batch_norm=True,
-                 kernel_initializer="he_normal",
-                 bias_initializer="zeros",
                  kernel_regularizer=None,
                  bias_regularizer=None,
                  activity_regularizer=None,
@@ -334,9 +323,6 @@ class ResBasicBlock3D(ResBasicBlockND):
                                               filters=filters, depth=depth, kernel_size=kernel_size,
                                               strides=strides, data_format=data_format,
                                               dilation_rate=dilation_rate, activation=activation,
-                                              use_residual_bias=use_residual_bias, use_conv_bias=use_conv_bias,
-                                              use_batch_norm=use_batch_norm,
-                                              kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
                                               kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
                                               activity_regularizer=activity_regularizer,
                                               kernel_constraint=kernel_constraint, bias_constraint=bias_constraint,
@@ -384,6 +370,7 @@ class ResBasicBlock1DTranspose(ResBasicBlockNDTranspose):
                  depth=2,
                  kernel_size=3,
                  strides=1,
+                 padding="same",
                  data_format=None,
                  activation="linear",
                  kernel_regularizer=None,
@@ -405,6 +392,7 @@ class ResBasicBlock1DTranspose(ResBasicBlockNDTranspose):
                                                        seed=seed,
                                                        **kwargs
                                                        )
+        self._padding = padding
 
     def get_config(self):
         config = super(ResBasicBlock1DTranspose, self).get_config()
@@ -491,6 +479,7 @@ class ResBlockND(Layer):
                  basic_block_depth=1,
                  kernel_size: Union[int, Tuple, List] = 3,
                  strides: Union[int, Tuple, List] = 1,
+                 padding="same",
                  data_format: AnyStr = None,
                  dilation_rate: Union[int, Tuple, List] = 1,
                  activation: Union[None, AnyStr, Callable] = "linear",
@@ -517,6 +506,7 @@ class ResBlockND(Layer):
 
         self.kernel_size = conv_utils.normalize_tuple(kernel_size, rank, "kernel_size")
         self.strides = conv_utils.normalize_tuple(strides, rank, "strides")
+        self.padding = normalize_padding(padding)
 
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.dilation_rate = conv_utils.normalize_tuple(dilation_rate, rank, "dilation_rate")
@@ -542,6 +532,7 @@ class ResBlockND(Layer):
                                           depth=self.basic_block_depth,
                                           kernel_size=self.kernel_size,
                                           strides=strides,
+                                          padding=self.padding,
                                           data_format=self.data_format,
                                           dilation_rate=self.dilation_rate,
                                           kernel_regularizer=self.kernel_regularizer,
@@ -607,7 +598,7 @@ class ResBlockND(Layer):
                 "basic_block_depth": self.basic_block_depth,
                 "kernel_size": self.kernel_size,
                 "strides": self.strides,
-                "padding": "same",
+                "padding": self.padding,
                 "data_format": self.data_format,
                 "dilation_rate": self.dilation_rate,
                 "activation": activation,
@@ -634,6 +625,7 @@ class ResBlock1D(ResBlockND):
                  basic_block_depth=1,
                  kernel_size=3,
                  strides=1,
+                 padding="same",
                  data_format=None,
                  dilation_rate=1,
                  activation="linear",
@@ -646,13 +638,12 @@ class ResBlock1D(ResBlockND):
                  **kwargs):
         super(ResBlock1D, self).__init__(rank=1, filters=filters, basic_block_count=basic_block_count,
                                          basic_block_depth=basic_block_depth, kernel_size=kernel_size,
-                                         strides=strides, data_format=data_format,
+                                         strides=strides, padding=padding, data_format=data_format,
                                          dilation_rate=dilation_rate, activation=activation,
                                          kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
                                          activity_regularizer=activity_regularizer,
                                          kernel_constraint=kernel_constraint, bias_constraint=bias_constraint,
-                                         seed=seed,
-                                         **kwargs)
+                                         seed=seed, **kwargs)
 
     def get_config(self):
         config = super(ResBlock1D, self).get_config()
@@ -735,6 +726,7 @@ class ResBlockNDTranspose(ResBlockND):
                                                    depth=self.basic_block_depth,
                                                    kernel_size=self.kernel_size,
                                                    strides=strides,
+                                                   padding=self.padding,
                                                    data_format=self.data_format,
                                                    dilation_rate=self.dilation_rate,
                                                    activation=self.activation,
