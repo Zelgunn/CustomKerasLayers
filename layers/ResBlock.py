@@ -483,7 +483,6 @@ class ResBlockND(Layer):
                  data_format: AnyStr = None,
                  dilation_rate: Union[int, Tuple, List] = 1,
                  activation: Union[None, AnyStr, Callable] = "linear",
-                 projection_kernel_initializer: Union[Dict, AnyStr, Callable] = None,
                  kernel_regularizer: Union[Dict, AnyStr, Callable] = None,
                  bias_regularizer: Union[Dict, AnyStr, Callable] = None,
                  activity_regularizer: Union[Dict, AnyStr, Callable] = None,
@@ -493,9 +492,6 @@ class ResBlockND(Layer):
                  **kwargs):
         assert rank in [1, 2, 3]
         assert basic_block_count > 0
-
-        if projection_kernel_initializer is None:
-            projection_kernel_initializer = VarianceScaling(scale=1.0, mode="fan_in", seed=seed)
 
         super(ResBlockND, self).__init__(**kwargs)
         self.rank = rank
@@ -512,7 +508,6 @@ class ResBlockND(Layer):
         self.dilation_rate = conv_utils.normalize_tuple(dilation_rate, rank, "dilation_rate")
         self.activation = activations.get(activation)
 
-        self.projection_kernel_initializer = initializers.get(projection_kernel_initializer)
         self.kernel_regularizer = regularizers.get(kernel_regularizer)
         self.bias_regularizer = regularizers.get(bias_regularizer)
         self.activity_regularizer = regularizers.get(activity_regularizer)
@@ -602,7 +597,6 @@ class ResBlockND(Layer):
                 "data_format": self.data_format,
                 "dilation_rate": self.dilation_rate,
                 "activation": activation,
-                "projection_kernel_initializer": initializers.serialize(self.projection_kernel_initializer),
                 "kernel_regularizer": regularizers.serialize(self.kernel_regularizer),
                 "bias_regularizer": regularizers.serialize(self.bias_regularizer),
                 "activity_regularizer": regularizers.serialize(self.activity_regularizer),
