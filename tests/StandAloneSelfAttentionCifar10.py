@@ -1,3 +1,4 @@
+import tensorflow as tf
 from tensorflow.python.keras.models import Sequential
 from tensorflow.python.keras.layers import MaxPooling2D, Flatten, Dense
 from tensorflow.python.keras.initializers import VarianceScaling
@@ -14,6 +15,8 @@ from CustomKerasLayers.layers.ResBlock import ResBlock2D
 
 
 def main():
+    tf.random.set_seed(42)
+
     block_count = 4
     basic_block_count = 8
     input_shape = (32, 32, 3)
@@ -32,11 +35,10 @@ def main():
         "activity_regularizer": None,
         "kernel_constraint": None,
         "bias_constraint": None,
-        "seed": 42
     }
 
     layers = [
-        ResBlock2D(filters=16, basic_block_count=basic_block_count, kernel_size=7, seed=42, input_shape=input_shape),
+        ResBlock2D(filters=16, basic_block_count=basic_block_count, kernel_size=7, input_shape=input_shape),
         MaxPooling2D(4)
     ]
     for i in range(1, block_count):
@@ -46,7 +48,7 @@ def main():
         layers.append(MaxPooling2D(2))
 
     layers.append(Flatten())
-    layers.append(Dense(units=10, activation="softmax", kernel_initializer=VarianceScaling(seed=42)))
+    layers.append(Dense(units=10, activation="softmax", kernel_initializer=VarianceScaling()))
 
     model = Sequential(layers=layers, name="StandAloneSelfAttentionBasedClassifier")
     model.summary()
@@ -64,7 +66,7 @@ def main():
                                    width_shift_range=5. / 32,
                                    height_shift_range=5. / 32,
                                    horizontal_flip=True)
-    generator.fit(x_train, seed=0)
+    generator.fit(x_train)
     # endregion
 
     log_dir = "../../logs/tests/stand_alone_self_attention_cifar10/{}".format(int(time()))

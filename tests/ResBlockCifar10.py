@@ -1,3 +1,4 @@
+import tensorflow as tf
 from tensorflow.python.keras.layers import Input, AveragePooling2D, Dense, Flatten
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.datasets import cifar10
@@ -12,6 +13,8 @@ from CustomKerasLayers import ResBlock2D
 
 
 def main():
+    tf.random.set_seed(42)
+
     total_depth = 36
     n_blocks = 3
     basic_block_count = total_depth // n_blocks
@@ -47,7 +50,7 @@ def main():
                                    width_shift_range=5. / 32,
                                    height_shift_range=5. / 32,
                                    horizontal_flip=True)
-    generator.fit(x_train, seed=0)
+    generator.fit(x_train)
     # endregion
 
     log_dir = "../logs/tests/res_block_cifar10/{}".format(int(time()))

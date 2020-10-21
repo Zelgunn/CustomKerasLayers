@@ -1,3 +1,4 @@
+import tensorflow as tf
 from tensorflow.python.keras.layers import Input, AveragePooling2D, Dense, Conv2D, Flatten
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.datasets import cifar10
@@ -13,6 +14,8 @@ from CustomKerasLayers import DenseBlock2D
 
 
 def evaluate_on_cifar10():
+    tf.random.set_seed(42)
+
     total_depth = 100
     n_blocks = 3
     depth = (total_depth - 4) // n_blocks
@@ -54,7 +57,7 @@ def evaluate_on_cifar10():
                                    width_shift_range=5. / 32,
                                    height_shift_range=5. / 32,
                                    horizontal_flip=True)
-    generator.fit(x_train, seed=0)
+    generator.fit(x_train)
     # endregion
 
     log_dir = "../logs/tests/dense_block_cifar10/{}".format(int(time()))

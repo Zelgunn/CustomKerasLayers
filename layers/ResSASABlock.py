@@ -21,12 +21,11 @@ class ResSASABasicBlock(ResBasicBlockND):
                  activity_regularizer: Optional[Union[Dict, AnyStr, Callable]],
                  kernel_constraint: Optional[Union[Dict, AnyStr, Callable]],
                  bias_constraint: Optional[Union[Dict, AnyStr, Callable]],
-                 seed: Optional[int],
                  **kwargs):
         filters = head_count * head_size
         self.head_size = head_size
         self.head_count = head_count
-        self.embeddings_initializer = RandomNormal(stddev=1.0, seed=seed)
+        self.embeddings_initializer = RandomNormal(stddev=1.0)
 
         super(ResSASABasicBlock, self).__init__(rank=rank, filters=filters, depth=depth, kernel_size=kernel_size,
                                                 strides=strides, data_format=None, dilation_rate=dilation_rate,
@@ -34,7 +33,7 @@ class ResSASABasicBlock(ResBasicBlockND):
                                                 bias_regularizer=bias_regularizer,
                                                 activity_regularizer=activity_regularizer,
                                                 kernel_constraint=kernel_constraint, bias_constraint=bias_constraint,
-                                                seed=seed, **kwargs)
+                                                **kwargs)
 
     def get_conv_layer_type(self) -> Type[StandAloneSelfAttention]:
         return StandAloneSelfAttention
@@ -92,7 +91,6 @@ class ResSASABlock(ResBlockND):
                  activity_regularizer: Union[Dict, AnyStr, Callable] = None,
                  kernel_constraint: Union[Dict, AnyStr, Callable] = None,
                  bias_constraint: Union[Dict, AnyStr, Callable] = None,
-                 seed: Optional[int] = None,
                  **kwargs):
         filters = head_count * head_size
         self.head_size = head_size
@@ -107,7 +105,7 @@ class ResSASABlock(ResBlockND):
                                            bias_regularizer=bias_regularizer,
                                            activity_regularizer=activity_regularizer,
                                            kernel_constraint=kernel_constraint, bias_constraint=bias_constraint,
-                                           seed=seed, **kwargs)
+                                           **kwargs)
 
     def init_layers(self):
         for i in range(self.basic_block_count):
@@ -123,8 +121,7 @@ class ResSASABlock(ResBlockND):
                                             bias_regularizer=self.bias_regularizer,
                                             activity_regularizer=self.activity_regularizer,
                                             kernel_constraint=self.kernel_constraint,
-                                            bias_constraint=self.bias_constraint,
-                                            seed=self.seed)
+                                            bias_constraint=self.bias_constraint)
             self.basic_blocks.append(basic_block)
 
     def build(self, input_shape):

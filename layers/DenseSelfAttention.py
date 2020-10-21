@@ -13,13 +13,11 @@ class DenseSelfAttention(Layer):
                  activation: Union[str, Layer],
                  use_bias: bool,
                  use_mask: bool = True,
-                 seed: int = None,
                  **kwargs):
         super(DenseSelfAttention, self).__init__(**kwargs)
 
         self.attention_layer = MultiHeadAttention(head_count=head_count, keys_size=head_size, values_size=head_size,
-                                                  output_size=output_size, activation=activation, use_bias=use_bias,
-                                                  seed=seed)
+                                                  output_size=output_size, activation=activation, use_bias=use_bias)
         self.use_mask = use_mask
 
     def call(self, inputs, **kwargs):
@@ -43,7 +41,6 @@ class DenseSelfAttention(Layer):
             "activation": self.activation,
             "use_bias": self.use_bias,
             "use_mask": self.use_mask,
-            "seed": self.seed,
         }
 
     def compute_output_shape(self, input_shape: tf.TensorShape) -> tf.TensorShape:
@@ -71,8 +68,4 @@ class DenseSelfAttention(Layer):
     @property
     def use_bias(self) -> bool:
         return self.attention_layer.use_bias
-
-    @property
-    def seed(self) -> int:
-        return self.attention_layer.seed
     # endregion
