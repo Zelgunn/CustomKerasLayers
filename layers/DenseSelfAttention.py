@@ -11,13 +11,15 @@ class DenseSelfAttention(Layer):
                  head_size: int,
                  output_size: int,
                  activation: Union[str, Layer],
+                 use_bias: bool,
                  use_mask: bool = True,
                  seed: int = None,
                  **kwargs):
         super(DenseSelfAttention, self).__init__(**kwargs)
 
         self.attention_layer = MultiHeadAttention(head_count=head_count, keys_size=head_size, values_size=head_size,
-                                                  output_size=output_size, activation=activation, seed=seed)
+                                                  output_size=output_size, activation=activation, use_bias=use_bias,
+                                                  seed=seed)
         self.use_mask = use_mask
 
     def call(self, inputs, **kwargs):
@@ -35,10 +37,42 @@ class DenseSelfAttention(Layer):
         base_config = super(DenseSelfAttention, self).get_config()
         return {
             **base_config,
-            "head_count": self.attention_layer.head_count,
-            "head_size": self.attention_layer.values_size,
-            "output_size": self.attention_layer.output_size,
-            "activation" : self.activation.activation,
+            "head_count": self.head_count,
+            "head_size": self.values_size,
+            "output_size": self.output_size,
+            "activation": self.activation,
+            "use_bias": self.use_bias,
             "use_mask": self.use_mask,
-            "seed": self.attention_layer.seed,
+            "seed": self.seed,
         }
+
+    def compute_output_shape(self, input_shape: tf.TensorShape) -> tf.TensorShape:
+        output_shape = input_shape[:-1]
+        output_shape = output_shape.concatenate([self.output_size])
+        return output_shape
+
+    # region Properties
+    @property
+    def output_size(self) -> int:
+        return self.attention_layer.output_size
+
+    @property
+    def head_count(self) -> int:
+        return self.attention_layer.head_count
+
+    @property
+    def head_size(self) -> int:
+        return self.attention_layer.head_size
+
+    @property
+    def activation(self) -> Union[str, Layer]:
+        return self.attention_layer.activation
+
+    @property
+    def use_bias(self) -> bool:
+        return self.attention_layer.use_bias
+
+    @property
+    def seed(self) -> int:
+        return self.attention_layer.seed
+    # endregion

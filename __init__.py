@@ -20,6 +20,9 @@ from CustomKerasLayers.layers.StandAloneSelfAttention import StandAloneSelfAtten
 from CustomKerasLayers.layers.StandAloneSelfAttention import StandAloneSelfAttention3D
 
 # noinspection PyUnresolvedReferences
+from CustomKerasLayers.layers.DenseSelfAttention import DenseSelfAttention
+
+# noinspection PyUnresolvedReferences
 from CustomKerasLayers.layers.ResSASABlock import ResSASABasicBlock
 # noinspection PyUnresolvedReferences
 from CustomKerasLayers.layers.ResSASABlock import ResSASABlock
