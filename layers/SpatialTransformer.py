@@ -108,7 +108,8 @@ class SpatialTransformer(Layer):
         return tf.constant([1.0, 0.0, 0.0, 0.0, 1.0, 0.0], dtype=tf.float32)
 
     def compute_output_shape(self, input_shape):
-        assert len(input_shape) == 4
+        if len(input_shape) != 4:
+            raise ValueError("Input shape must have a length of 4. Got {}".format(input_shape))
 
         if self.output_size is None:
             return input_shape

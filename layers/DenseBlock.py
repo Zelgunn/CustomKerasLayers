@@ -123,7 +123,8 @@ class DenseBlockND(Layer):
                  bias_constraint=None,
                  **kwargs):
 
-        assert rank in [1, 2, 3]
+        if rank not in [1, 2, 3]:
+            raise ValueError("`rank` must be in [1, 2, 3]. Got {}".format(rank))
 
         super(DenseBlockND, self).__init__(**kwargs)
 
@@ -133,7 +134,9 @@ class DenseBlockND(Layer):
         self.growth_rate = growth_rate
 
         if use_bottleneck:
-            assert (depth % 2) == 0, "Depth must be a multiple of 2 when using bottlenecks."
+            if (depth % 2) != 0:
+                raise ValueError("Depth must be a multiple of 2 when using bottlenecks. Got {}.".format(depth))
+
         self._depth = depth // 2 if use_bottleneck else depth
         self.use_bottleneck = use_bottleneck
         self.bottleneck_filters_multiplier = bottleneck_filters_multiplier

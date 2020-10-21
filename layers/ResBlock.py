@@ -490,8 +490,12 @@ class ResBlockND(Layer):
                  bias_constraint: Union[Dict, AnyStr, Callable] = None,
                  seed: Optional[int] = None,
                  **kwargs):
-        assert rank in [1, 2, 3]
-        assert basic_block_count > 0
+        if rank not in [1, 2, 3]:
+            raise ValueError("`rank` must be in [1, 2, 3]. Got {}".format(rank))
+
+        if not isinstance(basic_block_count, int) or (basic_block_count <= 0):
+            raise ValueError("`basic_block_count` must be a strictly positive integer. Got {}"
+                             .format(basic_block_count))
 
         super(ResBlockND, self).__init__(**kwargs)
         self.rank = rank
