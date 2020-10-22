@@ -59,7 +59,7 @@ class DenseSelfAttention(Layer):
 
     @property
     def head_size(self) -> int:
-        return self.attention_layer.head_size
+        return self.attention_layer.values_size
 
     @property
     def activation(self) -> Union[str, Layer]:
