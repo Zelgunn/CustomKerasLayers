@@ -51,7 +51,6 @@ class Unfold(Layer):
             sizes = (1, 1, *self.kernel_size, 1)
             strides = (1, 1, *self.strides, 1)
             rates = (1, 1, *self.dilation_rate, 1)
-            inputs = tf.expand_dims(inputs, axis=1)
         else:
             sizes = (1, *self.kernel_size, 1)
             strides = (1, *self.strides, 1)
@@ -60,7 +59,8 @@ class Unfold(Layer):
 
         # region Extraction
         if self.rank == 1:
-            outputs = extract_image_patches(inputs, sizes=sizes, strides=strides, rates=rates, padding=self.padding)
+            expanded_inputs = tf.expand_dims(inputs, axis=1)
+            outputs = extract_image_patches(expanded_inputs, sizes=sizes, strides=strides, rates=rates, padding=self.padding)
             outputs = tf.squeeze(outputs, axis=1)
         elif self.rank == 2:
             outputs = extract_image_patches(inputs, sizes=sizes, strides=strides, rates=rates, padding=self.padding)
