@@ -36,7 +36,7 @@ class DenseSelfAttention(Layer):
         return {
             **base_config,
             "head_count": self.head_count,
-            "head_size": self.values_size,
+            "head_size": self.head_size,
             "output_size": self.output_size,
             "activation": self.activation,
             "use_bias": self.use_bias,
@@ -59,7 +59,7 @@ class DenseSelfAttention(Layer):
 
     @property
     def head_size(self) -> int:
-        return self.attention_layer.head_size
+        return self.attention_layer.values_size
 
     @property
     def activation(self) -> Union[str, Layer]:
