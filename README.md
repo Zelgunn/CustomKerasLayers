@@ -32,7 +32,7 @@ Original paper (ResNet):
       year={2016}
     }
     
-Currently implemented paper (Batch Normalization Biases Deep Residual Networks Towards Shallow Paths):
+Currently implemented paper (SkipInit):
 
     @article{de2020batch,
         title={Batch normalization biases deep residual networks towards shallow paths},
