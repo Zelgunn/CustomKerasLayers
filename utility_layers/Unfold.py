@@ -45,6 +45,7 @@ class Unfold(Layer):
         # input_channel = input_shape[-1]
         # self.input_spec = InputSpec(ndim=self.rank + 2, axes={-1: input_channel})
 
+    @tf.function
     def call(self, inputs, **kwargs):
         # region Getting parameters for extraction
         if self.rank == 1:

@@ -28,7 +28,8 @@ class ResSASABasicBlock(ResBasicBlockND):
         self.embeddings_initializer = RandomNormal(stddev=1.0)
 
         super(ResSASABasicBlock, self).__init__(rank=rank, filters=filters, depth=depth, kernel_size=kernel_size,
-                                                strides=strides, data_format=None, dilation_rate=dilation_rate,
+                                                strides=strides, padding="same", data_format=None,
+                                                dilation_rate=dilation_rate,
                                                 kernel_regularizer=kernel_regularizer,
                                                 bias_regularizer=bias_regularizer,
                                                 activity_regularizer=activity_regularizer,
@@ -85,7 +86,6 @@ class ResSASABlock(ResBlockND):
                  data_format: AnyStr = None,
                  dilation_rate: Union[int, Tuple, List] = 1,
                  activation: Union[None, AnyStr, Callable] = "relu",
-                 projection_kernel_initializer: Union[Dict, AnyStr, Callable] = None,
                  kernel_regularizer: Union[Dict, AnyStr, Callable] = None,
                  bias_regularizer: Union[Dict, AnyStr, Callable] = None,
                  activity_regularizer: Union[Dict, AnyStr, Callable] = None,
@@ -100,7 +100,6 @@ class ResSASABlock(ResBlockND):
                                            basic_block_depth=basic_block_depth, kernel_size=kernel_size,
                                            strides=strides, data_format=data_format, dilation_rate=dilation_rate,
                                            activation=activation,
-                                           projection_kernel_initializer=projection_kernel_initializer,
                                            kernel_regularizer=kernel_regularizer,
                                            bias_regularizer=bias_regularizer,
                                            activity_regularizer=activity_regularizer,

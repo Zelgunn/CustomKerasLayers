@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tensorflow.python.keras.layers import Layer, InputSpec
+from tensorflow.python.keras.layers import Layer
 from tensorflow.python.keras.layers.convolutional import Conv
 from tensorflow.python.keras import activations, initializers, regularizers, constraints
 from tensorflow.python.keras.utils import conv_utils
@@ -22,11 +22,11 @@ class StandAloneSelfAttention(Layer):
                  kernel_initializer: Optional[Union[Dict, AnyStr, Callable]],
                  bias_initializer: Optional[Union[Dict, AnyStr, Callable]],
                  embeddings_initializer: Optional[Union[Dict, AnyStr, Callable]],
-                 kernel_regularizer: Optional[Union[Dict, AnyStr, Callable]],
-                 bias_regularizer: Optional[Union[Dict, AnyStr, Callable]],
-                 activity_regularizer: Optional[Union[Dict, AnyStr, Callable]],
-                 kernel_constraint: Optional[Union[Dict, AnyStr, Callable]],
-                 bias_constraint: Optional[Union[Dict, AnyStr, Callable]],
+                 kernel_regularizer: Optional[Union[Dict, AnyStr, Callable]] = None,
+                 bias_regularizer: Optional[Union[Dict, AnyStr, Callable]] = None,
+                 activity_regularizer: Optional[Union[Dict, AnyStr, Callable]] = None,
+                 kernel_constraint: Optional[Union[Dict, AnyStr, Callable]] = None,
+                 bias_constraint: Optional[Union[Dict, AnyStr, Callable]] = None,
                  trainable=True,
                  name=None,
                  **kwargs):
@@ -114,9 +114,7 @@ class StandAloneSelfAttention(Layer):
         self.conv_embeddings = conv_embeddings
         # endregion
 
-    def build(self, input_shape):
-        self.input_spec = InputSpec(shape=input_shape)
-
+    @tf.function
     def call(self, inputs, **kwargs):
         # region Inputs shape
         inputs_shape = tf.shape(inputs)
