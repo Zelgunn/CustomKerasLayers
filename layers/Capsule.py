@@ -1,12 +1,14 @@
 import tensorflow as tf
-from tensorflow.python.keras.layers import InputSpec, Layer
-from tensorflow.python.keras.layers import Conv1D, Conv2D, Conv3D, Dense
-from tensorflow.python.keras.layers import BatchNormalization, concatenate
+from tensorflow.python.keras.layers import Layer
+from tensorflow.python.ops.init_ops import VarianceScaling, Constant
+# from tensorflow.python.keras.layers import Conv1D, Conv2D, Conv3D, Dense
+# from tensorflow.python.keras.layers import BatchNormalization, concatenate
 from tensorflow.python.keras.utils import conv_utils
-from tensorflow.python.keras import activations, initializers, regularizers, constraints
-from typing import List, Optional, Tuple, Union
+# from tensorflow.python.keras import activations, initializers, regularizers, constraints
+from typing import Optional, Tuple, Union
 
-from misc_utils.math_utils import squash
+
+# from misc_utils.math_utils import squash
 
 
 class CapsuleND(Layer):
@@ -36,9 +38,9 @@ class CapsuleND(Layer):
     def build(self, input_shape):
         batch_size, input_dim, input_atoms = input_shape
 
-        self.kernel = self.add_weight(name="kernel", initializer=initializers.VarianceScaling(scale=0.1),
+        self.kernel = self.add_weight(name="kernel", initializer=VarianceScaling(scale=0.1),
                                       shape=[*self.kernel_size, input_atoms, self.output_dim * self.output_atoms])
-        self.bias = self.add_weight(name="bias", initializer=initializers.Constant(value=0.1),
+        self.bias = self.add_weight(name="bias", initializer=Constant(value=0.1),
                                     shape=[self.output_dim, self.output_atoms])
 
         self.input_dim = input_dim
@@ -60,8 +62,8 @@ class CapsuleND(Layer):
 
         votes = self.convolution(inputs)
 
-        conv_dims = tf.unstack(tf.shape(votes)[2:])
-        votes_shape = [batch_size, input_dim, self.output_dim, self.output_atoms, *conv_dims]
+        # conv_dims = tf.unstack(tf.shape(votes)[2:])
+        # votes_shape = [batch_size, input_dim, self.output_dim, self.output_atoms, *conv_dims]
 
         return votes
 
@@ -93,9 +95,9 @@ class CapsuleND(Layer):
         else:
             raise AttributeError("No operation found for rank={}".format(self.rank))
 
-    def update_routing(self, votes: tf.Tensor, ) -> tf.Tensor:
-        def loop_cond(i, _, __):
-            return i < 0
-
-        def loop_body(i, logits, outputs_array):
-            pass
+    # def update_routing(self, votes: tf.Tensor, ) -> tf.Tensor:
+    #     def loop_cond(i, _, __):
+    #         return i < 0
+    #
+    #     def loop_body(i, logits, outputs_array):
+    #         pass

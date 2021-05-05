@@ -47,6 +47,8 @@ from CustomKerasLayers.layers.MaskedConvStack import MaskedConv2DStack, MaskedCo
 # noinspection PyUnresolvedReferences
 from CustomKerasLayers.utility_layers.ExpandDims import ExpandDims
 # noinspection PyUnresolvedReferences
+from CustomKerasLayers.utility_layers.SplitLayer import SplitLayer
+# noinspection PyUnresolvedReferences
 from CustomKerasLayers.utility_layers.TileLayer import TileLayer
 # noinspection PyUnresolvedReferences
 from CustomKerasLayers.utility_layers.Unfold import Unfold
