@@ -31,6 +31,15 @@ Original paper (ResNet):
       pages={770--778},
       year={2016}
     }
+    
+Currently implemented paper (SkipInit):
+
+    @article{de2020batch,
+        title={Batch normalization biases deep residual networks towards shallow paths},
+        author={De, Soham and Smith, Samuel L},
+        journal={arXiv preprint arXiv:2002.10444},
+        year={2020}
+    }
 
 ## SpatialTransformer
 Original paper :

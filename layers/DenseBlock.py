@@ -28,7 +28,7 @@ class CompositeFunctionBlock(Layer):
                  **kwargs
                  ):
         self.rank = rank
-        conv_layer_type = Conv1D if rank is 1 else Conv2D if rank is 2 else Conv3D
+        conv_layer_type = Conv1D if rank == 1 else Conv2D if rank == 2 else Conv3D
         self.filters = filters
         self.channel_axis = -1 if data_format == "channels_last" else 1
         self.activation = activation
@@ -175,7 +175,7 @@ class DenseBlockND(Layer):
             self.composite_function_blocks.append(composite_function_block)
 
         if self.output_filters is not None:
-            conv_layer_type = Conv1D if self.rank is 1 else Conv2D if self.rank is 2 else Conv3D
+            conv_layer_type = Conv1D if self.rank == 1 else Conv2D if self.rank == 2 else Conv3D
             self.transition_layer = conv_layer_type(filters=self.output_filters, kernel_size=1,
                                                     use_bias=self.use_bias,
                                                     data_format=self.data_format,
