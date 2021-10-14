@@ -7,7 +7,6 @@ from tensorflow.python.keras.utils import conv_utils
 # from tensorflow.python.keras import activations, initializers, regularizers, constraints
 from typing import Optional, Tuple, Union
 
-
 # from misc_utils.math_utils import squash
 
 # NOTE : The code for this layer (Capsule) is incomplete.
