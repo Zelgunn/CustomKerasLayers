@@ -4,7 +4,7 @@ Now updated for TF2.0 (and tf.keras).
 ## Table of Contents
     1. Layers
     2. ResBlock
-        a. Fixup Initialization
+        a. SkipInit Initialization
     3. Spatial Tranformer
         a. Usage
 
