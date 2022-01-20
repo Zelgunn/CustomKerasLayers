@@ -36,7 +36,7 @@ class ResSASABasicBlock(ResBasicBlockND):
                                                 kernel_constraint=kernel_constraint, bias_constraint=bias_constraint,
                                                 **kwargs)
 
-    def get_conv_layer_type(self) -> Type[StandAloneSelfAttention]:
+    def conv_layer_type(self) -> Type[StandAloneSelfAttention]:
         return StandAloneSelfAttention
 
     def init_layer(self, use_strides: bool, projection_layer: bool) -> StandAloneSelfAttention:
